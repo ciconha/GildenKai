@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cartão da Guilda</title>
+  <link rel="stylesheet" href="medieval.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>🏰 Cartão da Guilda</h1>
+    <img id="avatar" src="" alt="Avatar do guerreiro" />
+    <p><strong>Nome:</strong> <span id="nome">Carregando...</span></p>
+    <p><strong>Classe:</strong> <span id="classe">Feiticeiro</span></p>
+    <p><strong>Nível:</strong> <span id="nivel">42</span></p>
+    <p><strong>GitHub:</strong> <a id="link" href="#" target="_blank">Perfil</a></p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const usuario = params.get("usuario") || "octocat"; // padrão se não passar nada
+
+    fetch(`https://api.github.com/users/${usuario}`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("nome").textContent = data.name || data.login;
+        document.getElementById("avatar").src = data.avatar_url;
+        document.getElementById("link").href = data.html_url;
+      })
+      .catch(() => {
+        document.getElementById("nome").textContent = "Aventureiro Desconhecido";
+      });
+  </script>
+</body>
+</html>

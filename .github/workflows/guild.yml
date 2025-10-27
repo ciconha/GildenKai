@@ -1,0 +1,50 @@
+name: Gerar Cartão da Guilda
+
+on:
+  workflow_dispatch:
+    inputs:
+      nome:
+        description: 'Digite seu nome para gerar o cartão'
+        required: true
+        default: 'dudu'
+
+jobs:
+  gerar-cartao:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v3
+
+      - name: Criar pasta de cartões (se não existir)
+        run: mkdir -p cards
+
+      - name: Gerar cartão HTML
+        run: |
+          echo "<!DOCTYPE html>
+          <html lang='pt-BR'>
+          <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <title>Cartão da Guilda - ${{ github.event.inputs.nome }}</title>
+            <link rel='stylesheet' href='../style.css'>
+          </head>
+          <body>
+            <div class='card'>
+              <h1>Cartão da Guilda</h1>
+              <p><strong>Nome:</strong> ${{ github.event.inputs.nome }}</p>
+              <p><strong>Classe:</strong> Guerreiro</p>
+              <p><strong>Nível:</strong> 1</p>
+            </div>
+          </body>
+          </html>" > cards/${{ github.event.inputs.nome }}.html
+
+      - name: Commit e Push do cartão
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add cards/
+          git commit -m "Adicionando cartão de ${{ github.event.inputs.nome }}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
