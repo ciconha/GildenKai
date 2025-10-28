@@ -1,54 +1,60 @@
-name: Guild Card
+name: Guild Card SVG
 
 on:
-  schedule:
-    - cron: "0 0 * * *"  # roda todo dia à meia-noite
-  workflow_dispatch:      # permite rodar manualmente
+  workflow_dispatch:
+    inputs:
+      usuario:
+        description: 'Nome de usuário do GitHub'
+        required: true
+        default: 'ciconha'
 
 permissions:
-  contents: write         # permite salvar o arquivo no repositório
+  contents: write
 
 jobs:
-  gerar-cartao:
+  gerar-svg:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout do repositório
         uses: actions/checkout@v4
 
-      - name: Gerar cartão da guilda em HTML
+      - name: Instalar dependências
+        run: sudo apt-get install curl jq
+
+      - name: Buscar dados do GitHub
+        id: dados
+        run: |
+          curl -s https://api.github.com/users/${{ github.event.inputs.usuario }} > user.json
+          echo "login=$(jq -r .login user.json)" >> $GITHUB_OUTPUT
+          echo "avatar=$(jq -r .avatar_url user.json)" >> $GITHUB_OUTPUT
+          echo "repos=$(jq -r .public_repos user.json)" >> $GITHUB_OUTPUT
+          echo "followers=$(jq -r .followers user.json)" >> $GITHUB_OUTPUT
+
+      - name: Gerar SVG do cartão
         run: |
           mkdir -p cards
-          echo "<!DOCTYPE html>
-          <html lang='pt-BR'>
-          <head>
-            <meta charset='UTF-8'>
-            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-            <title>Cartão da Guilda - ciconha</title>
-            <link rel='stylesheet' href='../style.css'>
-          </head>
-          <body>
-            <div class='card'>
-              <h1>Cartão da Guilda</h1>
-              <p><strong>Nome:</strong> ciconha</p>
-              <p><strong>Classe:</strong> Feiticeiro</p>
-              <p><strong>Nível:</strong> 42</p>
-              <p><strong>Servidor:</strong> Minecraft</p>
-            </div>
-          </body>
-          </html>" > cards/ciconha.html
+          echo "<svg xmlns='http://www.w3.org/2000/svg' width='400' height='200'>
+            <style>
+              .title { font: bold 20px serif; fill: #3b2f2f; }
+              .text { font: 14px serif; fill: #3b2f2f; }
+              .bg { fill: #fdf6e3; }
+              .border { stroke: #8b5e3c; stroke-width: 4; fill: none; }
+            </style>
+            <rect class='bg' width='100%' height='100%' />
+            <rect class='border' x='2' y='2' width='396' height='196' />
+            <image href='${{ steps.dados.outputs.avatar }}' x='20' y='20' width='60' height='60' />
+            <text x='100' y='40' class='title'>${{ steps.dados.outputs.login }}</text>
+            <text x='100' y='70' class='text'>Classe: Feiticeiro</text>
+            <text x='100' y='90' class='text'>Nível: $(( ${{ steps.dados.outputs.repos }} + ${{ steps.dados.outputs.followers }} ))</text>
+          </svg>" > cards/${{ github.event.inputs.usuario }}.svg
 
-      - name: Gerar CSV da guilda
-        run: |
-          echo "nome,classe,nivel,servidor" > cards/ciconha.csv
-          echo "ciconha,Feiticeiro,42,Minecraft" >> cards/ciconha.csv
-
-      - name: Commit e Push dos arquivos
+      - name: Commit e Push
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add cards/
-          git commit -m "Cartão da guilda gerado automaticamente"
+          git commit -m "Cartão SVG da guilda gerado para ${{ github.event.inputs.usuario }}"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
