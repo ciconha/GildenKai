@@ -1,12 +1,12 @@
-name: Gerar Cartão da Guilda
+name: Guild Card
 
 on:
-  workflow_dispatch:
-    inputs:
-      nome:
-        description: 'Digite seu nome para gerar o cartão'
-        required: true
-        default: 'dudu'
+  schedule:
+    - cron: "0 0 * * *"  # roda todo dia à meia-noite
+  workflow_dispatch:      # permite rodar manualmente
+
+permissions:
+  contents: write         # permite salvar o arquivo no repositório
 
 jobs:
   gerar-cartao:
@@ -14,37 +14,41 @@ jobs:
 
     steps:
       - name: Checkout do repositório
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Criar pasta de cartões (se não existir)
-        run: mkdir -p cards
-
-      - name: Gerar cartão HTML
+      - name: Gerar cartão da guilda em HTML
         run: |
+          mkdir -p cards
           echo "<!DOCTYPE html>
           <html lang='pt-BR'>
           <head>
             <meta charset='UTF-8'>
             <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-            <title>Cartão da Guilda - ${{ github.event.inputs.nome }}</title>
+            <title>Cartão da Guilda - ciconha</title>
             <link rel='stylesheet' href='../style.css'>
           </head>
           <body>
             <div class='card'>
               <h1>Cartão da Guilda</h1>
-              <p><strong>Nome:</strong> ${{ github.event.inputs.nome }}</p>
-              <p><strong>Classe:</strong> Guerreiro</p>
-              <p><strong>Nível:</strong> 1</p>
+              <p><strong>Nome:</strong> ciconha</p>
+              <p><strong>Classe:</strong> Feiticeiro</p>
+              <p><strong>Nível:</strong> 42</p>
+              <p><strong>Servidor:</strong> Minecraft</p>
             </div>
           </body>
-          </html>" > cards/${{ github.event.inputs.nome }}.html
+          </html>" > cards/ciconha.html
 
-      - name: Commit e Push do cartão
+      - name: Gerar CSV da guilda
+        run: |
+          echo "nome,classe,nivel,servidor" > cards/ciconha.csv
+          echo "ciconha,Feiticeiro,42,Minecraft" >> cards/ciconha.csv
+
+      - name: Commit e Push dos arquivos
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add cards/
-          git commit -m "Adicionando cartão de ${{ github.event.inputs.nome }}"
+          git commit -m "Cartão da guilda gerado automaticamente"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
