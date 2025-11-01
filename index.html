@@ -1,196 +1,166 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Cartão da Guilda RPG - Gerador GitHub</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🛡️ Criador de Guild Card - Workflow Generator</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <div class="container">
-        <!-- Header Hero -->
-        <header class="hero">
-            <h1>🎮 Cartão da Guilda RPG</h1>
-            <p class="subtitle">Transforme seu GitHub em uma aventura épica!</p>
-            <p class="description">Digite seu username do GitHub e crie seu cartão RPG personalizado</p>
-        </header>
+  <div class="container">
+    <!-- 🔰 Header -->
+    <header class="hero">
+      <h1>🎮 Criador de Guild Card + Workflow</h1>
+      <p class="subtitle">Crie seu cartão RPG e gere automaticamente o workflow GitHub!</p>
+      <p class="description">Preencha o formulário abaixo para gerar seu arquivo <code>guild.yml</code> personalizado.</p>
+    </header>
 
-        <!-- Generator Section -->
-        <section class="generator">
-            <div class="input-section">
-                <div class="input-group">
-                    <label for="username">👤 GitHub Username:</label>
-                    <input type="text" id="username" placeholder="ex: ciconha, torvalds, etc..." value="">
-                    <small>Digite qualquer username do GitHub (público ou privado)</small>
-                </div>
+    <!-- 📋 Formulário -->
+    <section class="form-section">
+      <div class="form-container">
+        <form id="guildForm" onsubmit="event.preventDefault()">
+          <!-- 👤 Informações Pessoais -->
+          <div class="form-group">
+            <h3>👤 Informações Pessoais</h3>
 
-                <div class="input-group">
-                    <label for="cardStyle">🎨 Estilo do Cartão:</label>
-                    <select id="cardStyle">
-                        <option value="medieval">🏰 Medieval</option>
-                        <option value="cyberpunk">🌃 Cyberpunk</option>
-                        <option value="fantasy">🧙 Fantasy</option>
-                        <option value="dark">🌑 Dark Mode</option>
-                        <option value="nature">🌿 Natureza</option>
-                        <option value="ocean">🌊 Oceano</option>
-                    </select>
-                </div>
+            <div class="input-row">
+              <div class="input-group">
+                <label for="username">GitHub Username *</label>
+                <input type="text" id="username" placeholder="ex: ciconha" required>
+                <small>Seu nome de usuário no GitHub</small>
+              </div>
 
-                <div class="input-group">
-                    <label for="cardSize">📐 Tamanho:</label>
-                    <select id="cardSize">
-                        <option value="small">Pequeno (300x400)</option>
-                        <option value="medium" selected>Médio (400x500)</option>
-                        <option value="large">Grande (500x600)</option>
-                    </select>
-                </div>
-
-                <button onclick="generateCard()" class="generate-btn">🎨 Gerar Meu Cartão</button>
+              <div class="input-group">
+                <label for="empresa">Empresa</label>
+                <input type="text" id="empresa" placeholder="Google, Microsoft, etc...">
+                <small>Onde você trabalha (opcional)</small>
+              </div>
             </div>
 
-            <!-- Loading -->
-            <div id="loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Conjurando magias do GitHub... ✨</p>
+            <div class="input-row">
+              <div class="input-group">
+                <label for="area">Área de Atuação *</label>
+                <select id="area" required>
+                  <option value="">Selecione sua área</option>
+                  <option value="frontend">🎨 Frontend Developer</option>
+                  <option value="backend">⚙️ Backend Developer</option>
+                  <option value="fullstack">🚀 Fullstack Developer</option>
+                  <option value="devops">🔧 DevOps Engineer</option>
+                  <option value="mobile">📱 Mobile Developer</option>
+                  <option value="data">📊 Data Scientist</option>
+                  <option value="ai">🤖 AI Engineer</option>
+                  <option value="security">🛡️ Security Engineer</option>
+                  <option value="qa">🧪 QA Engineer</option>
+                  <option value="ux">🎯 UX/UI Designer</option>
+                </select>
+                <small>Sua especialização</small>
+              </div>
+
+              <div class="input-group">
+                <label for="workflowName">Nome do Workflow</label>
+                <input type="text" id="workflowName" placeholder="guild-workflow" value="guild-workflow">
+                <small>Nome interno do workflow</small>
+              </div>
             </div>
 
-            <!-- Preview Card -->
-            <div class="card-preview" id="cardPreview">
-                <div class="placeholder-card">
-                    <div class="placeholder-content">
-                        <div class="placeholder-avatar"></div>
-                        <div class="placeholder-text">
-                            <div class="placeholder-line short"></div>
-                            <div class="placeholder-line medium"></div>
-                        </div>
-                    </div>
-                    <div class="placeholder-message">
-                        <p>🔮 Digite um username do GitHub acima</p>
-                        <p>🎯 Seu cartão RPG aparecerá aqui!</p>
-                    </div>
-                </div>
+            <div class="input-row">
+              <div class="input-group full-width">
+                <label for="token">Token Secreto (Opcional)</label>
+                <input type="text" id="token" placeholder="NOME_DO_TOKEN_SECRETO">
+                <small>Ex: <code>MY_GITHUB_TOKEN</code> ou deixe vazio para usar o <code>GITHUB_TOKEN</code></small>
+              </div>
             </div>
+          </div>
 
-            <!-- Card Actions -->
-            <div class="card-actions hidden" id="cardActions">
-                <h3>📋 Como usar seu cartão:</h3>
-                <div class="action-buttons">
-                    <button onclick="downloadCard()" class="action-btn download">💾 Baixar SVG</button>
-                    <button onclick="copyEmbedCode()" class="action-btn copy">📋 Copiar Markdown</button>
-                    <button onclick="copyHtmlCode()" class="action-btn share">🔗 Copiar HTML</button>
-                </div>
-                
-                <div class="embed-section">
-                    <h4>Para seu GitHub README.md:</h4>
-                    <div class="code-block">
-                        <code id="embedCode">![Cartão RPG](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCI+PC9zdmc+)</code>
-                        <button onclick="copyEmbedCode()">📋</button>
-                    </div>
-                </div>
+          <!-- ⚙️ Botões -->
+          <div class="form-actions">
+            <button type="button" class="btn preview" onclick="previewWorkflow()">👁️ Visualizar Workflow</button>
+            <button type="button" class="btn generate" onclick="generateWorkflow()">⚡ Gerar guild.yml</button>
+            <button type="reset" class="btn reset">🔄 Limpar</button>
+          </div>
+        </form>
+      </div>
 
-                <div class="embed-section">
-                    <h4>Para sites e fóruns (HTML):</h4>
-                    <div class="code-block">
-                        <code id="htmlCode">&lt;img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCI+PC9zdmc+" alt="Cartão RPG" /&gt;</code>
-                        <button onclick="copyHtmlCode()">📋</button>
-                    </div>
-                </div>
+      <!-- 📄 Preview -->
+      <div class="preview-section">
+        <h3>📋 Preview do Workflow</h3>
+        <div class="preview-container">
+          <pre id="workflowPreview" class="code-preview">
+# Seu workflow aparecerá aqui...
+# Preencha o formulário e clique em "Visualizar Workflow"
+          </pre>
+        </div>
 
-                <div class="embed-section">
-                    <h4>URL Direta (para APIs):</h4>
-                    <div class="code-block">
-                        <code id="urlCode">Cole o código SVG gerado acima em seu projeto</code>
-                        <button onclick="copyUrlCode()">📋</button>
-                    </div>
-                </div>
-            </div>
+        <div class="preview-actions hidden" id="previewActions">
+          <button class="btn download" onclick="generateWorkflow()">💾 Baixar guild.yml</button>
+          <button class="btn copy" onclick="copyWorkflow()">📋 Copiar YAML</button>
+        </div>
 
-            <!-- User Stats -->
-            <div class="user-stats hidden" id="userStats">
-                <h3>📊 Estatísticas do GitHub:</h3>
-                <div class="stats-grid" id="statsGrid">
-                    <!-- Será preenchido via JavaScript -->
-                </div>
-            </div>
-        </section>
+        <!-- ℹ️ Instruções -->
+        <div class="instructions">
+          <h4>📚 Como usar:</h4>
+          <ol>
+            <li>Preencha o formulário com suas informações</li>
+            <li>Visualize o workflow e faça o download</li>
+            <li>Coloque o arquivo na pasta <code>.github/workflows/</code> do seu repositório</li>
+            <li>Adicione seu token GitHub (se necessário) em <code>Settings → Secrets → Actions</code></li>
+            <li>O workflow irá gerar automaticamente seu cartão SVG</li>
+          </ol>
+        </div>
+      </div>
+    </section>
 
-        <!-- Examples Section -->
-        <section class="examples">
-            <h2>🎯 Exemplos de Cartões</h2>
-            <div class="examples-grid">
-                <div class="example-card">
-                    <div class="example-preview medieval" id="example1">
-                        <div class="example-placeholder">
-                            <p>🏰 Exemplo Medieval</p>
-                            <small>Clique em Gerar para ver</small>
-                        </div>
-                    </div>
-                    <p>@seu-usuario - 🏰 Medieval</p>
-                </div>
-                <div class="example-card">
-                    <div class="example-preview cyberpunk" id="example2">
-                        <div class="example-placeholder">
-                            <p>🌃 Exemplo Cyberpunk</p>
-                            <small>Clique em Gerar para ver</small>
-                        </div>
-                    </div>
-                    <p>@seu-usuario - 🌃 Cyberpunk</p>
-                </div>
-                <div class="example-card">
-                    <div class="example-preview fantasy" id="example3">
-                        <div class="example-placeholder">
-                            <p>🧙 Exemplo Fantasy</p>
-                            <small>Clique em Gerar para ver</small>
-                        </div>
-                    </div>
-                    <p>@seu-usuario - 🧙 Fantasy</p>
-                </div>
-            </div>
-        </section>
+    <!-- 🧠 Exemplos -->
+    <section class="examples">
+      <h2>🎯 Exemplos de Configuração</h2>
+      <div class="examples-grid">
+        <div class="example-card">
+          <h4>🚀 Configuração Básica</h4>
+          <pre><code>name: Guild Card
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
 
-        <!-- Features Section -->
-        <section class="features">
-            <h2>⚡ Sistema RPG Completo</h2>
-            <div class="features-grid">
-                <div class="feature">
-                    <h3>🎯 Para Qualquer Usuário</h3>
-                    <p>Funciona com <strong>qualquer username do GitHub</strong> - público ou privado!</p>
-                    <ul>
-                        <li>✅ Usuários públicos: Dados reais da API</li>
-                        <li>✅ Usuários privados: Sistema inteligente</li>
-                        <li>✅ Sem necessidade de login</li>
-                        <li>✅ Totalmente gratuito</li>
-                    </ul>
-                </div>
+jobs:
+  gerar-card:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate SVG
+        run: echo "Cartão gerado!"</code></pre>
+        </div>
 
-                <div class="feature">
-                    <h3>♾️ Sistema de Níveis</h3>
-                    <p>Progressão baseada em atividades reais do GitHub</p>
-                    <ul>
-                        <li>📈 XP por commits, PRs, issues</li>
-                        <li>🏆 Ranks evolutivos</li>
-                        <li>🧙 Classes únicas</li>
-                        <li>⚡ Projetos destacados</li>
-                    </ul>
-                </div>
+        <div class="example-card">
+          <h4>🎨 Configuração Avançada</h4>
+          <pre><code>name: Guild Card Pro
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  push:
+    branches: [ main ]
 
-                <div class="feature">
-                    <h3>🎨 Totalmente Personalizável</h3>
-                    <p>6 temas visuais + 3 tamanhos diferentes</p>
-                    <ul>
-                        <li>🏰 Medieval • 🌃 Cyberpunk</li>
-                        <li>🧙 Fantasy • 🌑 Dark Mode</li>
-                        <li>🌿 Natureza • 🌊 Oceano</li>
-                        <li>📐 Pequeno, Médio e Grande</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-    </div>
+jobs:
+  generate-card:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Card
+        uses: guild-card-action@v1
+        with:
+          username: ${{ github.actor }}
+          style: medieval
+          size: large</code></pre>
+        </div>
+      </div>
+    </section>
+  </div>
 
-    <!-- Toast Notifications -->
-    <div id="toast" class="toast hidden"></div>
+  <!-- 🔔 Toast -->
+  <div id="toast" class="toast hidden"></div>
 
-    <script src="script.js"></script>
+  <!-- 🚀 Script -->
+  <script src="script.js"></script>
 </body>
 </html>

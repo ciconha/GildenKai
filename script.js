@@ -1,690 +1,282 @@
-// Guild Card RPG Generator - Sistema Completo Frontend
-class GuildCardGenerator {
+// ==============================
+// ⚔️ Guild Workflow Generator - v2.5
+// ==============================
+class GuildWorkflowGenerator {
     constructor() {
-        this.currentUser = '';
-        this.currentStyle = 'medieval';
-        this.currentSize = 'medium';
-        this.currentSVG = '';
+        this.formData = {};
     }
 
-    async generateCard() {
-        const username = document.getElementById('username').value.trim();
-        const style = document.getElementById('cardStyle').value;
-        const size = document.getElementById('cardSize').value;
-        
-        if (!username) {
-            this.showToast('❌ Digite um username do GitHub!', 'error');
-            return;
-        }
-
-        this.currentUser = username;
-        this.currentStyle = style;
-        this.currentSize = size;
-
-        // Mostrar loading
-        this.showLoading(true);
-        this.hideCardActions();
-        this.hideUserStats();
-
-        try {
-            // Buscar dados do usuário
-            const userData = await this.fetchGitHubData(username);
-            
-            // Calcular estatísticas RPG
-            const stats = this.calculateUserStats(userData);
-            
-            // Gerar cartão SVG
-            const svgContent = this.generateSVGCard(userData, stats, style, size);
-            this.currentSVG = svgContent;
-            
-            // Atualizar preview
-            this.updateCardPreview(svgContent, size);
-            
-            // Mostrar ações e estatísticas
-            this.showCardActions(svgContent, username, style, size);
-            this.showUserStats(stats, userData);
-            
-            this.showToast('🎉 Cartão gerado com sucesso!');
-
-        } catch (error) {
-            console.error('Erro ao gerar cartão:', error);
-            this.showToast('❌ Erro ao buscar dados do GitHub', 'error');
-        } finally {
-            this.showLoading(false);
-        }
-    }
-
-    async fetchGitHubData(username) {
-        try {
-            console.log(`📡 Buscando dados do GitHub para: ${username}`);
-            
-            const response = await fetch(`https://api.github.com/users/${username}`);
-            
-            if (!response.ok) {
-                throw new Error(`Usuário não encontrado: ${username}`);
-            }
-            
-            const userData = await response.json();
-            
-            // Buscar repositórios
-            const reposResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=100`);
-            const reposData = reposResponse.ok ? await reposResponse.json() : [];
-            
-            return {
-                username: userData.login,
-                avatar_url: userData.avatar_url,
-                public_repos: userData.public_repos,
-                followers: userData.followers,
-                following: userData.following,
-                created_at: userData.created_at,
-                repos: reposData,
-                has_real_data: true
-            };
-            
-        } catch (error) {
-            console.log('⚠️ Usando dados simulados:', error.message);
-            return this.generateSimulatedData(username);
-        }
-    }
-
-    generateSimulatedData(username) {
-        // Gerar dados consistentes baseados no username
-        const seed = this.stringToSeed(username);
-        const random = this.seededRandom(seed);
-        
-        return {
-            username: username,
-            avatar_url: `https://github.com/${username}.png`,
-            public_repos: Math.floor(random() * 50) + 5,
-            followers: Math.floor(random() * 200) + 10,
-            following: Math.floor(random() * 100) + 5,
-            created_at: new Date(Date.now() - random() * 31536000000 * 5).toISOString(), // 1-5 anos atrás
-            repos: [],
-            has_real_data: false
+    collectFormData() {
+        this.formData = {
+            username: document.getElementById('username')?.value.trim() || '',
+            empresa: document.getElementById('empresa')?.value.trim() || '',
+            area: document.getElementById('area')?.value.trim() || '',
+            token: document.getElementById('token')?.value.trim() || '',
+            workflowName: document.getElementById('workflowName')?.value.trim() || 'guild-workflow'
         };
+        return this.formData;
     }
 
-    stringToSeed(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0;
-        }
-        return Math.abs(hash);
+    validateForm() {
+        const d = this.formData;
+        if (!d.username) return this.showToast('❌ GitHub username é obrigatório!', 'error');
+        if (!d.area) return this.showToast('❌ Selecione sua área!', 'error');
+        return true;
     }
 
-    seededRandom(seed) {
-        return function() {
-            seed = (seed * 9301 + 49297) % 233280;
-            return seed / 233280;
-        };
+    generateWorkflowYAML() {
+        const d = this.formData;
+
+        const tokenField = d.token
+            ? `          token: \${{ secrets.${d.token} }}`
+            : `          token: \${{ secrets.GITHUB_TOKEN }}`;
+
+        const yamlContent = `name: ${d.workflowName}
+
+on:
+  workflow_dispatch:
+    inputs:
+      usuario:
+        description: 'Usuário do GitHub'
+        required: true
+        default: '${d.username}'
+      empresa:
+        description: 'Nome da empresa'
+        required: false
+        default: '${d.empresa || 'Independente'}'
+      area:
+        description: 'Área de atuação'
+        required: false
+        default: '${d.area}'
+
+permissions:
+  contents: write
+
+jobs:
+  gerar-svg:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧩 Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Instalar dependências
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y curl jq
+
+      - name: 🔍 Buscar dados do GitHub
+        id: fetch-data
+        env:
+          GH_TOKEN: \${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          USER="\${{ github.event.inputs.usuario }}"
+          
+          # Decide qual token usar
+          if [ -n "$GH_TOKEN" ]; then
+            TOKEN=$GH_TOKEN
+          else
+            TOKEN=\${{ secrets.GITHUB_TOKEN }}
+          fi
+
+          echo "📡 Coletando dados do usuário: $USER"
+
+          # Dados principais
+          curl -s -H "Authorization: token $TOKEN" "https://api.github.com/users/$USER" > user.json
+          curl -s -H "Authorization: token $TOKEN" "https://api.github.com/users/$USER/repos?per_page=100" > repos.json
+          curl -s -H "Authorization: token $TOKEN" "https://api.github.com/users/$USER/events?per_page=100" > events.json
+
+          sanitize() {
+            echo "$1" | iconv -c -t UTF-8//TRANSLIT | tr -d '\\n' | sed 's/"/\\\\"/g'
+          }
+
+          LOGIN=$(sanitize "$(jq -r '.login' user.json)")
+          NAME=$(sanitize "$(jq -r '.name // "Usuário Desconhecido"' user.json)")
+          BIO=$(sanitize "$(jq -r '.bio // "Desenvolvedor apaixonado por tecnologia."' user.json)")
+          REPOS=$(jq -r '.public_repos' user.json)
+          FOLLOWERS=$(jq -r '.followers' user.json)
+          COMMITS=$(jq '[.[] | select(.type == "PushEvent")] | length' events.json)
+          PRS=$(jq '[.[] | select(.type == "PullRequestEvent")] | length' events.json)
+          ISSUES=$(jq '[.[] | select(.type == "IssuesEvent")] | length' events.json)
+
+          # Linguagem mais usada
+          LANG=$(jq -r '.[].language' repos.json | sort | uniq -c | sort -nr | head -1 | awk '{print $2}')
+          if [ -z "$LANG" ] || [ "$LANG" = "null" ]; then
+            LANG="Desconhecida"
+          fi
+
+          # XP e classificação
+          TOTAL_XP=$((REPOS * 50 + FOLLOWERS * 30 + COMMITS * 2 + PRS * 10 + ISSUES * 5))
+          LEVEL=$((TOTAL_XP / 1000 + 1))
+          XP_PERCENTAGE=$(( (TOTAL_XP % 1000) * 100 / 1000 ))
+
+          if [ "$REPOS" -gt 50 ]; then
+            CLASS="Arquiteto"
+          elif [ "$FOLLOWERS" -gt 100 ]; then
+            CLASS="Lenda"
+          elif [ "$REPOS" -gt 30 ] && [ "$FOLLOWERS" -gt 50 ]; then
+            CLASS="Mestre"
+          else
+            CLASS="Aventureiro"
+          fi
+
+          if [ "$REPOS" -gt 100 ]; then
+            RANK="Lendário"
+          elif [ "$REPOS" -gt 50 ]; then
+            RANK="Épico"
+          else
+            RANK="Herói"
+          fi
+
+          # Top 2 projetos
+          jq 'sort_by(-.stargazers_count) | .[0:2] | .[] | {name: .name, stars: .stargazers_count}' repos.json > top_projects.json
+
+          echo "login=$LOGIN" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "bio=$BIO" >> $GITHUB_OUTPUT
+          echo "repos=$REPOS" >> $GITHUB_OUTPUT
+          echo "followers=$FOLLOWERS" >> $GITHUB_OUTPUT
+          echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+          echo "prs=$PRS" >> $GITHUB_OUTPUT
+          echo "issues=$ISSUES" >> $GITHUB_OUTPUT
+          echo "lang=$LANG" >> $GITHUB_OUTPUT
+          echo "total_xp=$TOTAL_XP" >> $GITHUB_OUTPUT
+          echo "level=$LEVEL" >> $GITHUB_OUTPUT
+          echo "xp_percentage=$XP_PERCENTAGE" >> $GITHUB_OUTPUT
+          echo "class=$CLASS" >> $GITHUB_OUTPUT
+          echo "rank=$RANK" >> $GITHUB_OUTPUT
+
+      - name: 🎨 Gerar SVG Dark Red Minimalista
+        run: |
+          mkdir -p cards
+          PROJECT1_NAME=$(jq -r '.name' top_projects.json | head -1)
+          PROJECT1_STARS=$(jq -r '.stars' top_projects.json | head -1)
+          PROJECT2_NAME=$(jq -r '.name' top_projects.json | tail -1)
+          PROJECT2_STARS=$(jq -r '.stars' top_projects.json | tail -1)
+          CURRENT_DATE=$(date +'%d/%m/%Y')
+
+          cat > cards/\${{ github.event.inputs.usuario }}.svg << EOF
+          <svg xmlns="http://www.w3.org/2000/svg" width="460" height="280" viewBox="0 0 460 280">
+            <defs>
+              <linearGradient id="darkRed" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#120000"/>
+                <stop offset="100%" stop-color="#360000"/>
+              </linearGradient>
+              <style>
+                .title { font-size: 22px; font-weight: bold; fill: #FF3333; }
+                .subtitle { font-size: 13px; fill: #FF7777; }
+                .text { font-size: 11px; fill: #FFAAAA; }
+                .bar-bg { fill: #1a0000; }
+                .bar-fill { fill: #FF2222; }
+              </style>
+            </defs>
+
+            <rect width="460" height="280" rx="15" ry="15" fill="url(#darkRed)" stroke="#880000" stroke-width="3"/>
+
+            <!-- Cabeçalho -->
+            <text x="30" y="55" class="title">\${{ steps.fetch-data.outputs.name }}</text>
+            <text x="30" y="75" class="subtitle">🏢 \${{ github.event.inputs.empresa }} • 💼 \${{ github.event.inputs.area }}</text>
+            <text x="30" y="93" class="subtitle">⚔️ \${{ steps.fetch-data.outputs.class }} • 🩸 \${{ steps.fetch-data.outputs.rank }}</text>
+
+            <!-- Bio -->
+            <text x="30" y="115" class="text">\${{ steps.fetch-data.outputs.bio }}</text>
+
+            <!-- Linguagem + XP -->
+            <text x="30" y="140" class="text">💻 Linguagem principal: \${{ steps.fetch-data.outputs.lang }}</text>
+            <text x="30" y="158" class="text">🏆 Nível: \${{ steps.fetch-data.outputs.level }} • XP Total: \${{ steps.fetch-data.outputs.total_xp }}</text>
+
+            <!-- Barra de XP -->
+            <rect x="30" y="165" width="280" height="8" class="bar-bg" rx="4" ry="4"/>
+            <rect x="30" y="165" width="\$((280 * \${{ steps.fetch-data.outputs.xp_percentage }} / 100))" height="8" class="bar-fill" rx="4" ry="4"/>
+
+            <!-- Projetos -->
+            <text x="30" y="195" class="subtitle">⭐ Destaques:</text>
+            <text x="30" y="215" class="text">• $PROJECT1_NAME — ⭐ $PROJECT1_STARS</text>
+            <text x="30" y="232" class="text">• $PROJECT2_NAME — ⭐ $PROJECT2_STARS</text>
+
+            <!-- Rodapé -->
+            <text x="230" y="265" text-anchor="middle" class="text">
+              Gerado em $CURRENT_DATE • \${{ steps.fetch-data.outputs.commits }} commits • \${{ steps.fetch-data.outputs.prs }} PRs • \${{ steps.fetch-data.outputs.issues }} issues
+            </text>
+          </svg>
+          EOF
+
+          echo "✅ SVG minimalista Dark Red gerado com sucesso!"
+
+      - name: 💾 Commit e Push automático
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add cards/
+          git commit -m "🩸 Atualização do cartão da guilda para \${{ github.event.inputs.usuario }}" || echo "Nenhuma mudança detectada"
+          git push
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+`;
+
+        return yamlContent;
     }
 
-    calculateUserStats(userData) {
-        const xpRates = {
-            commit: 5,
-            pull_request: 10,
-            issue: 8,
-            star: 2,
-            repository: 15,
-            fork: 3,
-            follow: 1
-        };
-
-        let totalXP = 0;
-        const activityBreakdown = {
-            commits: 0,
-            pull_requests: 0,
-            issues: 0,
-            stars: 0,
-            repositories: 0,
-            forks: 0,
-            followers: 0
-        };
-
-        // XP por repositórios
-        activityBreakdown.repositories = userData.public_repos;
-        totalXP += userData.public_repos * xpRates.repository;
-
-        // XP por stars e forks
-        let totalStars = 0;
-        let totalForks = 0;
-        
-        userData.repos.forEach(repo => {
-            totalStars += repo.stargazers_count || 0;
-            totalForks += repo.forks_count || 0;
-        });
-
-        activityBreakdown.stars = totalStars;
-        activityBreakdown.forks = totalForks;
-        totalXP += totalStars * xpRates.star;
-        totalXP += totalForks * xpRates.fork;
-
-        // XP por atividades (estimado)
-        if (userData.has_real_data) {
-            activityBreakdown.commits = Math.floor(totalStars * 0.5) + userData.public_repos * 10;
-            activityBreakdown.pull_requests = Math.floor(userData.public_repos * 2.5);
-            activityBreakdown.issues = Math.floor(userData.public_repos * 1.5);
-        } else {
-            // Dados simulados
-            const seed = this.stringToSeed(userData.username);
-            const random = this.seededRandom(seed);
-            
-            activityBreakdown.commits = Math.floor(random() * 500) + 50;
-            activityBreakdown.pull_requests = Math.floor(random() * 100) + 10;
-            activityBreakdown.issues = Math.floor(random() * 50) + 5;
-        }
-
-        totalXP += activityBreakdown.commits * xpRates.commit;
-        totalXP += activityBreakdown.pull_requests * xpRates.pull_request;
-        totalXP += activityBreakdown.issues * xpRates.issue;
-
-        // XP por seguidores
-        activityBreakdown.followers = userData.followers;
-        totalXP += userData.followers * xpRates.follow;
-
-        // Garantir XP mínimo
-        if (totalXP < 100) {
-            totalXP = Math.max(100, userData.followers * 20);
-        }
-
-        // Calcular nível
-        const levelInfo = this.calculateLevel(totalXP);
-        
-        // Determinar classe e rank
-        const userClass = this.determineClass(totalXP, userData);
-        const userRank = this.determineRank(totalXP);
-        
-        // Top projetos
-        const topProjects = this.getTopProjects(userData.repos, userData.username);
-
-        return {
-            total_xp: Math.floor(totalXP),
-            level: levelInfo.level,
-            xp_progress: levelInfo.progress,
-            xp_for_next_level: levelInfo.xpForNextLevel,
-            class: userClass,
-            rank: userRank,
-            top_projects: topProjects,
-            activity_breakdown: activityBreakdown
-        };
+    previewWorkflow() {
+        this.collectFormData();
+        if (!this.validateForm()) return;
+        const yml = this.generateWorkflowYAML();
+        document.getElementById('workflowPreview').textContent = yml;
+        document.getElementById('previewActions').classList.remove('hidden');
+        this.showToast('👁️ Workflow gerado com sucesso!');
     }
 
-    calculateLevel(xp) {
-        let level, xpForNextLevel, progress;
-        
-        if (xp < 1000) {
-            level = Math.floor(xp / 100) + 1;
-            xpForNextLevel = 100;
-            progress = (xp % 100) / 100 * 100;
-        } else if (xp < 5000) {
-            level = 10 + Math.floor((xp - 1000) / 250);
-            xpForNextLevel = 250;
-            progress = ((xp - 1000) % 250) / 250 * 100;
-        } else if (xp < 20000) {
-            level = 26 + Math.floor((xp - 5000) / 500);
-            xpForNextLevel = 500;
-            progress = ((xp - 5000) % 500) / 500 * 100;
-        } else {
-            level = 56 + Math.floor((xp - 20000) / 1000);
-            xpForNextLevel = 1000;
-            progress = ((xp - 20000) % 1000) / 1000 * 100;
-        }
-
-        return {
-            level: level,
-            progress: progress,
-            xpForNextLevel: xpForNextLevel
-        };
+    generateWorkflow() {
+        this.collectFormData();
+        if (!this.validateForm()) return;
+        const yml = this.generateWorkflowYAML();
+        const fileName = `${this.formData.workflowName}.yml`;
+        this.downloadYAML(yml, fileName);
+        this.showToast(`⚡ ${fileName} baixado! Coloque em .github/workflows/`);
     }
 
-    determineClass(xp, userData) {
-        const classes = [
-            [0, 1000, "🧭 Aventureiro"],
-            [1000, 2500, "🏹 Caçador"],
-            [2500, 5000, "🛡️ Cavaleiro"],
-            [5000, 10000, "🎩 Duque"],
-            [10000, 20000, "👑 Arquiduque"],
-            [20000, 40000, "🔮 Mago"],
-            [40000, 80000, "🧬 Cientista"],
-            [80000, 160000, "🧙‍♂️ Bruxo"],
-            [160000, 320000, "💥 Destruidor"],
-            [320000, 640000, "👑 Rei"],
-            [640000, 1280000, "✨ Divino"],
-            [1280000, Infinity, "🌌 Arquimago"]
-        ];
-
-        for (let [min, max, className] of classes) {
-            if (xp >= min && xp < max) return className;
-        }
-        return "🌌 Arquimago";
+    downloadYAML(content, filename) {
+        const blob = new Blob([content], { type: 'text/yaml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
-    determineRank(xp) {
-        const ranks = [
-            [0, 500, "🥉 Bronze"],
-            [500, 1500, "🥈 Prata"],
-            [1500, 3000, "🥇 Ouro"],
-            [3000, 5000, "💎 Platina"],
-            [5000, Infinity, "🔥 Lendário"]
-        ];
-
-        for (let [min, max, rankName] of ranks) {
-            if (xp >= min && xp < max) return rankName;
-        }
-        return "🔥 Lendário";
+    copyWorkflow() {
+        const text = document.getElementById('workflowPreview').textContent;
+        navigator.clipboard.writeText(text);
+        this.showToast('📋 Workflow copiado!');
     }
 
-    getTopProjects(repos, username) {
-        if (!repos || repos.length === 0) {
-            // Projetos simulados
-            const seed = this.stringToSeed(username);
-            const random = this.seededRandom(seed);
-            
-            return [
-                {
-                    name: `${username}-core`,
-                    description: 'Sistema principal do projeto',
-                    stars: Math.floor(random() * 100) + 10,
-                    forks: Math.floor(random() * 50) + 5,
-                    language: 'JavaScript',
-                    language_emoji: '📜'
-                },
-                {
-                    name: 'api-magic',
-                    description: 'API com funcionalidades incríveis',
-                    stars: Math.floor(random() * 50) + 5,
-                    forks: Math.floor(random() * 30) + 3,
-                    language: 'Python',
-                    language_emoji: '🐍'
-                },
-                {
-                    name: 'widgets-rpg',
-                    description: 'Componentes reutilizáveis',
-                    stars: Math.floor(random() * 30) + 3,
-                    forks: Math.floor(random() * 20) + 1,
-                    language: 'TypeScript',
-                    language_emoji: '🔷'
-                }
-            ];
-        }
-
-        // Ordenar por popularidade
-        const sortedRepos = [...repos].sort((a, b) => 
-            (b.stargazers_count || 0) - (a.stargazers_count || 0)
-        ).slice(0, 3);
-
-        const langEmojis = {
-            'Python': '🐍', 'JavaScript': '📜', 'TypeScript': '🔷',
-            'Java': '☕', 'Go': '🐹', 'Rust': '🦀',
-            'C++': '⚙️', 'C#': '🎵', 'Swift': '🐦',
-            'Kotlin': '🤖', 'PHP': '🐘', 'Ruby': '💎',
-            'HTML': '🌐', 'CSS': '🎨', 'Shell': '🐚'
-        };
-
-        return sortedRepos.map(repo => ({
-            name: repo.name,
-            description: repo.description || 'Sem descrição',
-            stars: repo.stargazers_count || 0,
-            forks: repo.forks_count || 0,
-            language: repo.language || 'Desconhecido',
-            language_emoji: langEmojis[repo.language] || '⚡'
-        }));
-    }
-
-    generateSVGCard(userData, stats, style, size) {
-        const themes = {
-            medieval: { background: '#2d3436', primary: '#feca57', secondary: '#ff6b6b', accent: '#48dbfb', text: '#ffffff' },
-            cyberpunk: { background: '#3a7bd5', primary: '#ff00ff', secondary: '#00ffff', accent: '#ffff00', text: '#000000' },
-            fantasy: { background: '#f5576c', primary: '#4ecdc4', secondary: '#44a08d', accent: '#ff6b6b', text: '#ffffff' },
-            dark: { background: '#2c3e50', primary: '#e74c3c', secondary: '#3498db', accent: '#f1c40f', text: '#ecf0f1' },
-            nature: { background: '#27ae60', primary: '#2ecc71', secondary: '#f1c40f', accent: '#e67e22', text: '#ffffff' },
-            ocean: { background: '#0984e3', primary: '#74b9ff', secondary: '#81ecec', accent: '#dfe6e9', text: '#2d3436' }
-        };
-
-        const sizes = {
-            small: { width: 300, height: 400, scale: 0.8 },
-            medium: { width: 400, height: 500, scale: 1.0 },
-            large: { width: 500, height: 600, scale: 1.2 }
-        };
-
-        const theme = themes[style] || themes.medieval;
-        const sizeConfig = sizes[size] || sizes.medium;
-        
-        const width = sizeConfig.width;
-        const height = sizeConfig.height;
-        const scale = sizeConfig.scale;
-
-        const baseY = 25 * scale;
-        const avatarSize = 70 * scale;
-        const textSmall = 10 * scale;
-        const textMedium = 12 * scale;
-        const textLarge = 16 * scale;
-        const textXLarge = 18 * scale;
-
-        // Calcular idade da conta
-        const accountAge = this.calculateAccountAge(userData.created_at);
-
-        const svg = `
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="${theme.background}"/>
-        <stop offset="100%" stop-color="${theme.accent}" stop-opacity="0.3"/>
-    </linearGradient>
-    <linearGradient id="xpGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="${theme.primary}"/>
-        <stop offset="${stats.xp_progress}%" stop-color="${theme.primary}"/>
-        <stop offset="${stats.xp_progress}%" stop-color="${theme.secondary}"/>
-        <stop offset="100%" stop-color="${theme.secondary}" stop-opacity="0.5"/>
-    </linearGradient>
-    <clipPath id="avatarClip">
-        <circle cx="${25 * scale + avatarSize/2}" cy="${baseY + avatarSize/2}" r="${avatarSize/2}"/>
-    </clipPath>
-</defs>
-
-<!-- Fundo -->
-<rect width="100%" height="100%" fill="url(#bgGrad)" rx="15"/>
-
-<!-- Avatar -->
-<g clip-path="url(#avatarClip)">
-    <image href="${userData.avatar_url}" 
-           x="${25 * scale}" y="${baseY}" 
-           width="${avatarSize}" height="${avatarSize}"/>
-</g>
-<circle cx="${25 * scale + avatarSize/2}" cy="${baseY + avatarSize/2}" 
-        r="${avatarSize/2 + 2}" fill="none" stroke="${theme.primary}" stroke-width="2"/>
-
-<!-- Informações do jogador -->
-<text x="${110 * scale}" y="${baseY + 25}" font-family="Arial, sans-serif" font-size="${textXLarge}" font-weight="bold" fill="${theme.primary}">
-    ${userData.username}
-</text>
-
-<text x="${110 * scale}" y="${baseY + 50}" font-family="Arial, sans-serif" font-size="${textMedium}" fill="${theme.secondary}">
-    🎯 Nv. ${stats.level} • ${accountAge} ano(s) no GitHub
-</text>
-
-<!-- Barra de XP -->
-<rect x="${25 * scale}" y="${baseY + 85}" width="${350 * scale}" height="${10 * scale}" 
-      fill="${theme.text}20" rx="${5 * scale}"/>
-<rect x="${25 * scale}" y="${baseY + 85}" width="${350 * scale * stats.xp_progress / 100}" 
-      height="${10 * scale}" fill="url(#xpGrad)" rx="${5 * scale}"/>
-
-<text x="${25 * scale}" y="${baseY + 110}" font-family="Arial, sans-serif" font-size="${textSmall}" fill="${theme.text}">
-    ⚡ ${stats.total_xp.toLocaleString()} XP • ${stats.xp_progress.toFixed(1)}% para o próximo nível
-</text>
-
-<!-- Stats principais -->
-<text x="${25 * scale}" y="${baseY + 140}" font-family="Arial, sans-serif" font-size="${textMedium}" fill="${theme.text}">
-    🧙 Classe: ${stats.class}
-</text>
-
-<text x="${25 * scale}" y="${baseY + 165}" font-family="Arial, sans-serif" font-size="${textMedium}" fill="${theme.accent}">
-    🏆 Rank: ${stats.rank}
-</text>
-
-<text x="${25 * scale}" y="${baseY + 190}" font-family="Arial, sans-serif" font-size="${textSmall}" fill="${theme.secondary}">
-    📚 ${userData.public_repos} repositórios • 👥 ${userData.followers} seguidores
-</text>
-
-<!-- Atividades -->
-<text x="${25 * scale}" y="${baseY + 220}" font-family="Arial, sans-serif" font-size="${textSmall}" fill="${theme.primary}">
-    📈 Atividades: ${stats.activity_breakdown.commits} commits • 
-    ${stats.activity_breakdown.pull_requests} PRs • 
-    ${stats.activity_breakdown.issues} issues
-</text>
-
-<!-- Projetos Destacados -->
-<text x="${25 * scale}" y="${baseY + 250}" font-family="Arial, sans-serif" font-size="${textMedium}" font-weight="bold" fill="${theme.primary}">
-    ⭐ Projetos Destacados:
-</text>
-
-${stats.top_projects.map((project, i) => {
-    const yPos = baseY + 280 + (i * 55 * scale);
-    const desc = project.description.length > 40 ? project.description.substring(0, 40) + '...' : project.description;
-    
-    return `
-    <text x="${25 * scale}" y="${yPos}" font-family="Arial, sans-serif" font-size="${textSmall}" font-weight="bold" fill="${theme.text}">
-        ${project.language_emoji} ${project.name} 
-        <tspan fill="${theme.secondary}">⭐${project.stars} • 🍴${project.forks}</tspan>
-    </text>
-    
-    <text x="${25 * scale}" y="${yPos + 18 * scale}" font-family="Arial, sans-serif" font-size="${9 * scale}" fill="${theme.text}AA">
-        ${desc}
-    </text>
-    
-    <text x="${25 * scale}" y="${yPos + 32 * scale}" font-family="Arial, sans-serif" font-size="${9 * scale}" fill="${theme.accent}">
-        🔮 ${project.language}
-    </text>
-    `;
-}).join('')}
-
-<!-- Footer -->
-<text x="${25 * scale}" y="${height - 25}" font-family="Arial, sans-serif" font-size="${10 * scale}" fill="${theme.secondary}">
-    🛡️ Cartão da Guilda RPG • Gerado em ${new Date().toLocaleDateString('pt-BR')}
-</text>
-
-<text x="${25 * scale}" y="${height - 10}" font-family="Arial, sans-serif" font-size="${10 * scale}" fill="${theme.accent}">
-    github-card-rpg.vercel.app
-</text>
-
-</svg>`;
-
-        return svg;
-    }
-
-    calculateAccountAge(createdAt) {
-        if (!createdAt) return 1;
-        const created = new Date(createdAt);
-        const now = new Date();
-        const diffTime = Math.abs(now - created);
-        const diffYears = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 365.25));
-        return Math.max(1, diffYears);
-    }
-
-    updateCardPreview(svgContent, size) {
-        const cardPreview = document.getElementById('cardPreview');
-        const sizeConfig = {
-            small: { width: 300, height: 400 },
-            medium: { width: 400, height: 500 },
-            large: { width: 500, height: 600 }
-        };
-        
-        const { width, height } = sizeConfig[size] || sizeConfig.medium;
-        
-        // Converter SVG para Data URL
-        const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
-        const svgUrl = URL.createObjectURL(svgBlob);
-        
-        cardPreview.innerHTML = `
-            <div class="generated-card">
-                <img src="${svgUrl}" 
-                     alt="Cartão RPG de ${this.currentUser}" 
-                     style="width: ${width}px; height: ${height}px;"
-                     onload="URL.revokeObjectURL(this.src)">
-                <div class="card-info">
-                    <p><strong>@${this.currentUser}</strong> • ${size} • ${this.currentStyle}</p>
-                </div>
-            </div>
-        `;
-    }
-
-    showCardActions(svgContent, username, style, size) {
-        const actions = document.getElementById('cardActions');
-        actions.classList.remove('hidden');
-
-        // Converter SVG para Base64
-        const base64SVG = btoa(unescape(encodeURIComponent(svgContent)));
-        const dataURL = `data:image/svg+xml;base64,${base64SVG}`;
-
-        // Atualizar códigos
-        document.getElementById('embedCode').textContent = 
-            `![Cartão RPG de ${username}](${dataURL})`;
-        
-        document.getElementById('htmlCode').textContent = 
-            `<img src="${dataURL}" alt="Cartão RPG de ${username}" width="${sizes[size].width}" height="${sizes[size].height}" />`;
-        
-        document.getElementById('urlCode').textContent = dataURL;
-    }
-
-    showUserStats(stats, userData) {
-        const statsGrid = document.getElementById('statsGrid');
-        
-        statsGrid.innerHTML = `
-            <div class="stat-item">
-                <span class="stat-value">${stats.level}</span>
-                <span class="stat-label">Nível</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">${stats.class}</span>
-                <span class="stat-label">Classe</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">${stats.rank}</span>
-                <span class="stat-label">Rank</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">${stats.total_xp.toLocaleString()}</span>
-                <span class="stat-label">XP Total</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">${userData.public_repos}</span>
-                <span class="stat-label">Repositórios</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">${userData.followers}</span>
-                <span class="stat-label">Seguidores</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">${stats.activity_breakdown.commits}</span>
-                <span class="stat-label">Commits</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">${stats.activity_breakdown.stars}</span>
-                <span class="stat-label">Stars</span>
-            </div>
-        `;
-
-        document.getElementById('userStats').classList.remove('hidden');
-    }
-
-    showLoading(show) {
-        const loading = document.getElementById('loading');
-        if (show) {
-            loading.classList.remove('hidden');
-        } else {
-            loading.classList.add('hidden');
-        }
-    }
-
-    hideCardActions() {
-        document.getElementById('cardActions').classList.add('hidden');
-    }
-
-    hideUserStats() {
-        document.getElementById('userStats').classList.add('hidden');
-    }
-
-    showToast(message, type = 'success') {
+    showToast(msg, type = 'success') {
         const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.className = `toast ${type} show`;
-        
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
+        toast.textContent = msg;
+        toast.className = 'toast ' + type + ' show';
+        setTimeout(() => toast.classList.remove('show'), 4000);
     }
 }
 
-// Tamanhos para referência
-const sizes = {
-    small: { width: 300, height: 400 },
-    medium: { width: 400, height: 500 },
-    large: { width: 500, height: 600 }
-};
+const workflowGenerator = new GuildWorkflowGenerator();
 
-// Inicializar generator
-const generator = new GuildCardGenerator();
+function previewWorkflow() { workflowGenerator.previewWorkflow(); }
+function generateWorkflow() { workflowGenerator.generateWorkflow(); }
+function copyWorkflow() { workflowGenerator.copyWorkflow(); }
 
-// Funções globais
-function generateCard() {
-    generator.generateCard();
-}
-
-function downloadCard() {
-    if (!generator.currentSVG) {
-        generator.showToast('❌ Gere um cartão primeiro!', 'error');
-        return;
-    }
-
-    const blob = new Blob([generator.currentSVG], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `github-card-${generator.currentUser}-${generator.currentStyle}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    generator.showToast('💾 SVG baixado com sucesso!');
-}
-
-function copyEmbedCode() {
-    const code = document.getElementById('embedCode');
-    copyToClipboard(code.textContent);
-    generator.showToast('📋 Markdown copiado para README!');
-}
-
-function copyHtmlCode() {
-    const code = document.getElementById('htmlCode');
-    copyToClipboard(code.textContent);
-    generator.showToast('📋 HTML copiado!');
-}
-
-function copyUrlCode() {
-    const code = document.getElementById('urlCode');
-    copyToClipboard(code.textContent);
-    generator.showToast('🔗 URL copiada!');
-}
-
-function copyToClipboard(text) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-}
-
-// Auto-configuração quando a página carregar
-document.addEventListener('DOMContentLoaded', function() {
-    // Focar no input de username
+document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('username').focus();
-    
-    // Adicionar evento de Enter no input
-    document.getElementById('username').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            generateCard();
-        }
-    });
 
-    // Preencher exemplos automaticamente após 2 segundos
-    setTimeout(loadExamples, 2000);
-});
+    // Adiciona campo de token se não existir
+    if (!document.getElementById('token')) {
+        const tokenInput = document.createElement('input');
+        tokenInput.id = 'token';
+        tokenInput.placeholder = 'Nome do token secreto (opcional)';
+        document.querySelector('form')?.appendChild(tokenInput);
+    }
 
-function loadExamples() {
-    // Esta função pode ser usada para carregar exemplos pré-definidos
-    console.log('✅ Sistema RPG Carregado!');
-}
-
-// Adicionar suporte para arrastar e soltar ou outras funcionalidades extras
-document.addEventListener('dragover', function(e) {
-    e.preventDefault();
-});
-
-document.addEventListener('drop', function(e) {
-    e.preventDefault();
+    workflowGenerator.showToast('⚙️ Guild Workflow Generator pronto!');
 });
