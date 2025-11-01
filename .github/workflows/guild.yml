@@ -1,50 +1,266 @@
-name: Gerar Cartão da Guilda
+name: Guild Card - ciconha
 
 on:
+  schedule:
+    - cron: '0 0 * * 0'
   workflow_dispatch:
-    inputs:
-      nome:
-        description: 'Digite seu nome para gerar o cartão'
-        required: true
-        default: 'dudu'
+  push:
+    branches: [ main, master ]
+    paths:
+      - '.github/workflows/guild.yml'
+
+permissions:
+  contents: write
 
 jobs:
-  gerar-cartao:
+  generate-guild-card:
     runs-on: ubuntu-latest
-
+    name: Generate RPG Guild Card
     steps:
-      - name: Checkout do repositório
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Criar pasta de cartões (se não existir)
-        run: mkdir -p cards
-
-      - name: Gerar cartão HTML
+      - name: Setup environment
         run: |
-          echo "<!DOCTYPE html>
-          <html lang='pt-BR'>
-          <head>
-            <meta charset='UTF-8'>
-            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-            <title>Cartão da Guilda - ${{ github.event.inputs.nome }}</title>
-            <link rel='stylesheet' href='../style.css'>
-          </head>
-          <body>
-            <div class='card'>
-              <h1>Cartão da Guilda</h1>
-              <p><strong>Nome:</strong> ${{ github.event.inputs.nome }}</p>
-              <p><strong>Classe:</strong> Guerreiro</p>
-              <p><strong>Nível:</strong> 1</p>
-            </div>
-          </body>
-          </html>" > cards/${{ github.event.inputs.nome }}.html
+          sudo apt-get update
+          sudo apt-get install -y curl jq
 
-      - name: Commit e Push do cartão
+      - name: Configure Git
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add cards/
-          git commit -m "Adicionando cartão de ${{ github.event.inputs.nome }}"
-          git push
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate Guild Card SVG
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USERNAME: "ciconha"
+          CARD_STYLE: "medieval"
+          CARD_SIZE: "medium"
+          CARD_LAYOUT: "banner"
+          USER_CLASS: "🚀 Lenda Fullstack"
+          USER_AREA: "fullstack"
+          USER_AGE: "20"
+          USER_COMPANY: "INSS"
+          INCLUDE_STATS: "basic"
+          LANGUAGE: "pt"
+        run: |
+          echo "🎮 Iniciando geração do Guild Card para: $GITHUB_USERNAME"
+          
+          # Criar diretório para os cartões
+          mkdir -p guild-cards
+          
+          # Buscar dados do GitHub
+          echo "📡 Buscando dados do GitHub..."
+          USER_RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/users/$GITHUB_USERNAME")
+          
+          # Extrair dados do usuário
+          AVATAR_URL=$(echo "$USER_RESPONSE" | jq -r '.avatar_url // empty')
+          PUBLIC_REPOS=$(echo "$USER_RESPONSE" | jq -r '.public_repos // 0')
+          FOLLOWERS=$(echo "$USER_RESPONSE" | jq -r '.followers // 0')
+          FOLLOWING=$(echo "$USER_RESPONSE" | jq -r '.following // 0')
+          CREATED_AT=$(echo "$USER_RESPONSE" | jq -r '.created_at // empty')
+          
+          # Buscar repositórios
+          echo "📚 Buscando repositórios..."
+          REPOS_RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/users/$GITHUB_USERNAME/repos?sort=updated&per_page=100")
+          
+          # Calcular total de stars
+          TOTAL_STARS=$(echo "$REPOS_RESPONSE" | jq '[.[].stargazers_count] | add // 0')
+          
+          # Buscar eventos para atividades (últimos 30 dias)
+          echo "📊 Buscando atividades..."
+          EVENTS_RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/users/$GITHUB_USERNAME/events?per_page=100")
+          
+          # Calcular XP baseado em várias métricas
+          XP_REPOS=$((PUBLIC_REPOS * 50))
+          XP_FOLLOWERS=$((FOLLOWERS * 30))
+          XP_STARS=$((TOTAL_STARS * 5))
+          TOTAL_XP=$((XP_REPOS + XP_FOLLOWERS + XP_STARS))
+          
+          # Calcular nível
+          if [ $TOTAL_XP -lt 1000 ]; then
+            LEVEL=$((TOTAL_XP / 100 + 1))
+            XP_NEXT=$((100 - (TOTAL_XP % 100)))
+          elif [ $TOTAL_XP -lt 5000 ]; then
+            LEVEL=$((10 + (TOTAL_XP - 1000) / 250))
+            XP_NEXT=$((250 - ((TOTAL_XP - 1000) % 250)))
+          else
+            LEVEL=$((26 + (TOTAL_XP - 5000) / 500))
+            XP_NEXT=$((500 - ((TOTAL_XP - 5000) % 500)))
+          fi
+          
+          # Determinar rank baseado no nível
+          if [ $LEVEL -lt 5 ]; then
+            RANK="🥉 Novato"
+          elif [ $LEVEL -lt 15 ]; then
+            RANK="🥈 Aventureiro"
+          elif [ $LEVEL -lt 25 ]; then
+            RANK="🥇 Herói"
+          elif [ $LEVEL -lt 35 ]; then
+            RANK="💎 Mestre"
+          else
+            RANK="🔥 Lendário"
+          fi
+          
+          # Calcular idade da conta em anos
+          if [ -n "$CREATED_AT" ]; then
+            ACCOUNT_CREATED=$(date -d "$CREATED_AT" +%s)
+            NOW=$(date +%s)
+            ACCOUNT_AGE_YEARS=$(( (NOW - ACCOUNT_CREATED) / 31536000 ))
+          else
+            ACCOUNT_AGE_YEARS=1
+          fi
+          
+          # Buscar top 3 projetos com mais stars
+          TOP_PROJECTS=$(echo "$REPOS_RESPONSE" | jq -r '
+            [.[] | select(.fork == false)] | 
+            sort_by(-(.stargazers_count // 0)) | 
+            .[0:3] | 
+            .[] | 
+            "(.name)|(.description // "Sem descrição")|(.stargazers_count // 0)|(.language // "Unknown")"'
+          )
+          
+          echo "🎨 Gerando cartão SVG..."
+          
+          # Gerar SVG completo
+          cat > "guild-cards/${GITHUB_USERNAME}.svg" << 'EOF'
+          <svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500">
+            <defs>
+              <style>
+                @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap');
+                .title { font: bold 24px 'Segoe UI', sans-serif; fill: #f8f9fa; }
+                .subtitle { font: 600 16px 'Segoe UI', sans-serif; fill: #adb5bd; }
+                .text { font: 14px 'Segoe UI', sans-serif; fill: #dee2e6; }
+                .stat { font: 12px 'Segoe UI', sans-serif; fill: #6c757d; }
+                .highlight { fill: #20c997; }
+                .warning { fill: #ffc107; }
+                .danger { fill: #dc3545; }
+              </style>
+              <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1a1a2e"/>
+                <stop offset="50%" stop-color="#16213e"/>
+                <stop offset="100%" stop-color="#0f3460"/>
+              </linearGradient>
+              <linearGradient id="xpGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#20c997"/>
+                <stop offset="100%" stop-color="#0dcaf0"/>
+              </linearGradient>
+              <clipPath id="avatarClip">
+                <circle cx="60" cy="60" r="45"/>
+              </clipPath>
+            </defs>
+            
+            <!-- Background -->
+            <rect width="100%" height="100%" fill="url(#bgGradient)" rx="15"/>
+            
+            <!-- Header -->
+            <rect width="100%" height="80" fill="rgba(0,0,0,0.3)" rx="15 15 0 0"/>
+            <text x="50%" y="45" text-anchor="middle" class="title">🛡️ Guild Card RPG</text>
+            <text x="50%" y="70" text-anchor="middle" class="subtitle">🚀 Lenda Fullstack</text>
+            
+            <!-- Avatar -->
+            <g clip-path="url(#avatarClip)">
+              <image href="https://github.com/ciconha.png" x="15" y="15" width="90" height="90"/>
+            </g>
+            <circle cx="60" cy="60" r="47" fill="none" stroke="#20c997" stroke-width="2"/>
+            
+            <!-- User Info -->
+            <text x="120" y="40" class="title">@ciconha</text>
+            <text x="120" y="65" class="subtitle">Nível 1 • 🥉 Novato</text>
+            
+            <!-- XP Bar -->
+            <rect x="120" y="75" width="260" height="8" fill="#495057" rx="4"/>
+            <rect x="120" y="75" width="260" height="8" fill="url(#xpGradient)" rx="4"/>
+            <text x="120" y="95" class="stat">⚡ 0 XP • 0% para o próximo nível</text>
+            
+            <!-- Stats Grid -->
+            <g transform="translate(30, 120)">
+              <rect x="0" y="0" width="170" height="80" fill="rgba(255,255,255,0.05)" rx="8"/>
+              <text x="85" y="25" text-anchor="middle" class="subtitle">📊 Estatísticas</text>
+              <text x="20" y="50" class="stat">📚 0 Repos</text>
+              <text x="20" y="70" class="stat">⭐ 0 Stars</text>
+              <text x="100" y="50" class="stat">👥 0 Seguidores</text>
+              <text x="100" y="70" class="stat">🕐 1 ano(s)</text>
+            </g>
+            
+            <g transform="translate(220, 120)">
+              <rect x="0" y="0" width="170" height="80" fill="rgba(255,255,255,0.05)" rx="8"/>
+              <text x="85" y="25" text-anchor="middle" class="subtitle">🏢 Profissional</text>
+              <text x="85" y="50" text-anchor="middle" class="text">INSS</text>
+              <text x="85" y="70" text-anchor="middle" class="stat">fullstack</text>
+            </g>
+            
+            <!-- Top Projects -->
+            <text x="30" y="230" class="subtitle">⭐ Projetos Destacados:</text>
+            <g transform="translate(30, 245)">
+              <text x="0" y="0" class="text">• meu-projeto ⭐0</text>
+              <text x="0" y="20" class="stat">  Descrição do projeto</text>
+              
+              <text x="0" y="50" class="text">• api-core ⭐0</text>
+              <text x="0" y="70" class="stat">  API principal</text>
+              
+              <text x="0" y="100" class="text">• web-app ⭐0</text>
+              <text x="0" y="120" class="stat">  Aplicação web</text>
+            </g>
+            
+            <!-- Footer -->
+            <rect width="100%" height="30" y="470" fill="rgba(0,0,0,0.4)" rx="0 0 15 15"/>
+            <text x="50%" y="490" text-anchor="middle" class="stat">
+              🛡️ Cartão da Guilda • Gerado em $(date +'%d/%m/%Y') • github.com/ciconha
+            </text>
+          </svg>
+          EOF
+          
+          echo "✅ Cartão SVG gerado com sucesso!"
+          echo "📁 Salvo em: guild-cards/$GITHUB_USERNAME.svg"
+
+      - name: Commit and Push Changes
+        run: |
+          echo "📦 Verificando mudanças..."
+          git status
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "🚀 Commitando mudanças..."
+            git add guild-cards/
+            git commit -m "🎮 Atualizar Guild Card de ciconha - $(date +'%d/%m/%Y %H:%M')"
+            git push
+            echo "✅ Mudanças commitadas e enviadas!"
+          else
+            echo "📝 Nenhuma mudança para commitar"
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: guild-card-ciconha
+          path: guild-cards/
+          retention-days: 7
+
+      - name: Success Notification
+        if: success()
+        run: |
+          echo "🎉 Guild Card gerado com sucesso!"
+          echo "👤 Usuário: ciconha"
+          echo "🎨 Estilo: medieval"
+          echo "📐 Tamanho: medium"
+          echo "🛡️ Classe: 🚀 Lenda Fullstack"
+          echo "📊 Estatísticas: basic"
+          echo "🌐 Idioma: pt"
+
+  deploy-to-pages:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: generate-guild-card
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
