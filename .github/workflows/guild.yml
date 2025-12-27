@@ -1,37 +1,3 @@
-name: Guild Card - ciconha
-
-on:
-  schedule:
-    - cron: '0 0 * * 0'
-  workflow_dispatch:
-  push:
-    branches: [ main, master ]
-    paths:
-      - '.github/workflows/guild.yml'
-
-permissions:
-  contents: write
-
-jobs:
-  generate-guild-card:
-    runs-on: ubuntu-latest
-    name: Generate RPG Guild Card
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl jq
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Generate Guild Card SVG
         env:
           GITHUB_USERNAME: "ciconha"
@@ -116,151 +82,131 @@ jobs:
           fi
           
           # Buscar top 3 projetos com mais stars
-          TOP_PROJECTS=$(echo "$REPOS_RESPONSE" | jq -r '
+          TOP_PROJECTS_RAW=$(echo "$REPOS_RESPONSE" | jq -r '
             [.[] | select(.fork == false)] | 
             sort_by(-(.stargazers_count // 0)) | 
             .[0:3] | 
             .[] | 
-            "(.name)|(.description // "Sem descrição")|(.stargazers_count // 0)|(.language // "Unknown")"'
+            "\(.name)|\(.description // "Sem descrição")|\(.stargazers_count // 0)|\(.language // "Unknown")"'
           )
+          
+          # Processar projetos
+          PROJECT_LINES=""
+          I=0
+          echo "$TOP_PROJECTS_RAW" | while read -r LINE; do
+            if [ -n "$LINE" ]; then
+              I=$((I + 1))
+              NAME=$(echo "$LINE" | cut -d'|' -f1)
+              DESC=$(echo "$LINE" | cut -d'|' -f2)
+              STARS=$(echo "$LINE" | cut -d'|' -f3)
+              LANG=$(echo "$LINE" | cut -d'|' -f4)
+              
+              if [ "$I" -eq 1 ]; then
+                PROJECT_LINES+="<text x=\"0\" y=\"0\" class=\"text\">• ${NAME} ⭐${STARS}</text>\n"
+                PROJECT_LINES+="<text x=\"0\" y=\"20\" class=\"stat\">  ${DESC:0:30}</text>\n\n"
+              elif [ "$I" -eq 2 ]; then
+                PROJECT_LINES+="<text x=\"0\" y=\"50\" class=\"text\">• ${NAME} ⭐${STARS}</text>\n"
+                PROJECT_LINES+="<text x=\"0\" y=\"70\" class=\"stat\">  ${DESC:0:30}</text>\n\n"
+              elif [ "$I" -eq 3 ]; then
+                PROJECT_LINES+="<text x=\"0\" y=\"100\" class=\"text\">• ${NAME} ⭐${STARS}</text>\n"
+                PROJECT_LINES+="<text x=\"0\" y=\"120\" class=\"stat\">  ${DESC:0:30}</text>\n"
+              fi
+            fi
+          done
+          
+          # Se não houver projetos, usar placeholder
+          if [ -z "$PROJECT_LINES" ]; then
+            PROJECT_LINES="<text x=\"0\" y=\"0\" class=\"text\">• Nenhum projeto encontrado</text>\n"
+            PROJECT_LINES+="<text x=\"0\" y=\"20\" class=\"stat\">  Crie seu primeiro repositório!</text>\n"
+          fi
           
           echo "🎨 Gerando cartão SVG..."
           
-          # Gerar SVG completo
-          cat > "guild-cards/${GITHUB_USERNAME}.svg" << 'EOF'
-          <svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500">
-            <defs>
-              <style>
-                @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap');
-                .title { font: bold 24px 'Segoe UI', sans-serif; fill: #f8f9fa; }
-                .subtitle { font: 600 16px 'Segoe UI', sans-serif; fill: #adb5bd; }
-                .text { font: 14px 'Segoe UI', sans-serif; fill: #dee2e6; }
-                .stat { font: 12px 'Segoe UI', sans-serif; fill: #6c757d; }
-                .highlight { fill: #20c997; }
-                .warning { fill: #ffc107; }
-                .danger { fill: #dc3545; }
-              </style>
-              <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#1a1a2e"/>
-                <stop offset="50%" stop-color="#16213e"/>
-                <stop offset="100%" stop-color="#0f3460"/>
-              </linearGradient>
-              <linearGradient id="xpGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#20c997"/>
-                <stop offset="100%" stop-color="#0dcaf0"/>
-              </linearGradient>
-              <clipPath id="avatarClip">
-                <circle cx="60" cy="60" r="45"/>
-              </clipPath>
-            </defs>
-            
-            <!-- Background -->
-            <rect width="100%" height="100%" fill="url(#bgGradient)" rx="15"/>
-            
-            <!-- Header -->
-            <rect width="100%" height="80" fill="rgba(0,0,0,0.3)" rx="15 15 0 0"/>
-            <text x="50%" y="45" text-anchor="middle" class="title">🛡️ Guild Card RPG</text>
-            <text x="50%" y="70" text-anchor="middle" class="subtitle">🚀 Lenda Fullstack</text>
-            
-            <!-- Avatar -->
-            <g clip-path="url(#avatarClip)">
-              <image href="https://github.com/ciconha.png" x="15" y="15" width="90" height="90"/>
-            </g>
-            <circle cx="60" cy="60" r="47" fill="none" stroke="#20c997" stroke-width="2"/>
-            
-            <!-- User Info -->
-            <text x="120" y="40" class="title">@ciconha</text>
-            <text x="120" y="65" class="subtitle">Nível 1 • 🥉 Novato</text>
-            
-            <!-- XP Bar -->
-            <rect x="120" y="75" width="260" height="8" fill="#495057" rx="4"/>
-            <rect x="120" y="75" width="260" height="8" fill="url(#xpGradient)" rx="4"/>
-            <text x="120" y="95" class="stat">⚡ 0 XP • 0% para o próximo nível</text>
-            
-            <!-- Stats Grid -->
-            <g transform="translate(30, 120)">
-              <rect x="0" y="0" width="170" height="80" fill="rgba(255,255,255,0.05)" rx="8"/>
-              <text x="85" y="25" text-anchor="middle" class="subtitle">📊 Estatísticas</text>
-              <text x="20" y="50" class="stat">📚 0 Repos</text>
-              <text x="20" y="70" class="stat">⭐ 0 Stars</text>
-              <text x="100" y="50" class="stat">👥 0 Seguidores</text>
-              <text x="100" y="70" class="stat">🕐 1 ano(s)</text>
-            </g>
-            
-            <g transform="translate(220, 120)">
-              <rect x="0" y="0" width="170" height="80" fill="rgba(255,255,255,0.05)" rx="8"/>
-              <text x="85" y="25" text-anchor="middle" class="subtitle">🏢 Profissional</text>
-              <text x="85" y="50" text-anchor="middle" class="text">INSS</text>
-              <text x="85" y="70" text-anchor="middle" class="stat">fullstack</text>
-            </g>
-            
-            <!-- Top Projects -->
-            <text x="30" y="230" class="subtitle">⭐ Projetos Destacados:</text>
-            <g transform="translate(30, 245)">
-              <text x="0" y="0" class="text">• meu-projeto ⭐0</text>
-              <text x="0" y="20" class="stat">  Descrição do projeto</text>
-              
-              <text x="0" y="50" class="text">• api-core ⭐0</text>
-              <text x="0" y="70" class="stat">  API principal</text>
-              
-              <text x="0" y="100" class="text">• web-app ⭐0</text>
-              <text x="0" y="120" class="stat">  Aplicação web</text>
-            </g>
-            
-            <!-- Footer -->
-            <rect width="100%" height="30" y="470" fill="rgba(0,0,0,0.4)" rx="0 0 15 15"/>
-            <text x="50%" y="490" text-anchor="middle" class="stat">
-              🛡️ Cartão da Guilda • Gerado em $(date +'%d/%m/%Y') • github.com/ciconha
-            </text>
-          </svg>
-          EOF
+          # Data atual
+          CURRENT_DATE=$(date +'%d/%m/%Y')
+          
+          # Gerar SVG completo usando cat com EOF e substituição de variáveis
+          cat > "guild-cards/${GITHUB_USERNAME}.svg" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap');
+      .title { font: bold 24px 'Segoe UI', sans-serif; fill: #f8f9fa; }
+      .subtitle { font: 600 16px 'Segoe UI', sans-serif; fill: #adb5bd; }
+      .text { font: 14px 'Segoe UI', sans-serif; fill: #dee2e6; }
+      .stat { font: 12px 'Segoe UI', sans-serif; fill: #6c757d; }
+      .highlight { fill: #20c997; }
+      .warning { fill: #ffc107; }
+      .danger { fill: #dc3545; }
+    </style>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="50%" stop-color="#16213e"/>
+      <stop offset="100%" stop-color="#0f3460"/>
+    </linearGradient>
+    <linearGradient id="xpGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#20c997"/>
+      <stop offset="100%" stop-color="#0dcaf0"/>
+    </linearGradient>
+    <clipPath id="avatarClip">
+      <circle cx="60" cy="60" r="45"/>
+    </clipPath>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)" rx="15"/>
+  
+  <!-- Header -->
+  <rect width="100%" height="80" fill="rgba(0,0,0,0.3)" rx="15 15 0 0"/>
+  <text x="50%" y="45" text-anchor="middle" class="title">🛡️ Guild Card RPG</text>
+  <text x="50%" y="70" text-anchor="middle" class="subtitle">${USER_CLASS}</text>
+  
+  <!-- Avatar -->
+  <g clip-path="url(#avatarClip)">
+    <image href="https://github.com/${GITHUB_USERNAME}.png" x="15" y="15" width="90" height="90"/>
+  </g>
+  <circle cx="60" cy="60" r="47" fill="none" stroke="#20c997" stroke-width="2"/>
+  
+  <!-- User Info -->
+  <text x="120" y="40" class="title">@${GITHUB_USERNAME}</text>
+  <text x="120" y="65" class="subtitle">Nível ${LEVEL} • ${RANK}</text>
+  
+  <!-- XP Bar -->
+  <rect x="120" y="75" width="260" height="8" fill="#495057" rx="4"/>
+  <rect x="120" y="75" width="260" height="8" fill="url(#xpGradient)" rx="4"/>
+  <text x="120" y="95" class="stat">⚡ ${TOTAL_XP} XP • ${XP_NEXT} XP para o próximo nível</text>
+  
+  <!-- Stats Grid -->
+  <g transform="translate(30, 120)">
+    <rect x="0" y="0" width="170" height="80" fill="rgba(255,255,255,0.05)" rx="8"/>
+    <text x="85" y="25" text-anchor="middle" class="subtitle">📊 Estatísticas</text>
+    <text x="20" y="50" class="stat">📚 ${PUBLIC_REPOS} Repos</text>
+    <text x="20" y="70" class="stat">⭐ ${TOTAL_STARS} Stars</text>
+    <text x="100" y="50" class="stat">👥 ${FOLLOWERS} Seguidores</text>
+    <text x="100" y="70" class="stat">🕐 ${ACCOUNT_AGE_YEARS} ano(s)</text>
+  </g>
+  
+  <g transform="translate(220, 120)">
+    <rect x="0" y="0" width="170" height="80" fill="rgba(255,255,255,0.05)" rx="8"/>
+    <text x="85" y="25" text-anchor="middle" class="subtitle">🏢 Profissional</text>
+    <text x="85" y="50" text-anchor="middle" class="text">${USER_COMPANY}</text>
+    <text x="85" y="70" text-anchor="middle" class="stat">${USER_AREA}</text>
+  </g>
+  
+  <!-- Top Projects -->
+  <text x="30" y="230" class="subtitle">⭐ Projetos Destacados:</text>
+  <g transform="translate(30, 245)">
+    $(echo -e "$PROJECT_LINES")
+  </g>
+  
+  <!-- Footer -->
+  <rect width="100%" height="30" y="470" fill="rgba(0,0,0,0.4)" rx="0 0 15 15"/>
+  <text x="50%" y="490" text-anchor="middle" class="stat">
+    🛡️ Cartão da Guilda • Gerado em ${CURRENT_DATE} • github.com/${GITHUB_USERNAME}
+  </text>
+</svg>
+EOF
           
           echo "✅ Cartão SVG gerado com sucesso!"
           echo "📁 Salvo em: guild-cards/$GITHUB_USERNAME.svg"
-
-      - name: Commit and Push Changes
-        run: |
-          echo "📦 Verificando mudanças..."
-          git status
-          
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "🚀 Commitando mudanças..."
-            git add guild-cards/
-            git commit -m "🎮 Atualizar Guild Card de ciconha - $(date +'%d/%m/%Y %H:%M')"
-            git push
-            echo "✅ Mudanças commitadas e enviadas!"
-          else
-            echo "📝 Nenhuma mudança para commitar"
-          fi
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: guild-card-ciconha
-          path: guild-cards/
-          retention-days: 7
-
-      - name: Success Notification
-        if: success()
-        run: |
-          echo "🎉 Guild Card gerado com sucesso!"
-          echo "👤 Usuário: ciconha"
-          echo "🎨 Estilo: medieval"
-          echo "📐 Tamanho: medium"
-          echo "🛡️ Classe: 🚀 Lenda Fullstack"
-          echo "📊 Estatísticas: basic"
-          echo "🌐 Idioma: pt"
-
-  deploy-to-pages:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    needs: generate-guild-card
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
