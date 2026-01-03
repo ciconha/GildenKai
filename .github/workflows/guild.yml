@@ -22,30 +22,47 @@ jobs:
   generate-guild-card:
     runs-on: ubuntu-latest
     
+    # Adicionar permissões explícitas
+    permissions:
+      contents: write
+      pull-requests: read
+      
     steps:
       - name: 🧩 Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Token com permissões de escrita
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
       
       - name: ⚙️ Setup environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl jq imagemagick
+          sudo apt-get install -y curl jq imagemagick fonts-dejavu
       
       - name: 🔍 Fetch GitHub data
         id: fetch-data
         env:
-          GITHUB_TOKEN: ${{ secrets.Ciconha_tsukuyomi }}
+          # Usar token personalizado se disponível
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           USER="${{ github.event.inputs.username }}"
           
           echo "Fetching data for: $USER"
           
+          # Verificar qual token usar
+          if [ -n "$GH_TOKEN" ]; then
+            TOKEN=$GH_TOKEN
+          else
+            TOKEN=${{ secrets.GITHUB_TOKEN }}
+          fi
+          
           # Get user data
-          curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/users/$USER" > user.json
           
           # Get repositories
-          curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/users/$USER/repos?per_page=100" > repos.json
           
           # Calculate statistics
@@ -54,50 +71,245 @@ jobs:
           STARS=$(jq -r '[.[].stargazers_count] | add' repos.json)
           MAIN_LANG=$(jq -r '[.[].language | select(. != null)] | group_by(.) | max_by(length) | .[0]' repos.json)
           
+          # Se STARS for null, definir como 0
+          if [ "$STARS" = "null" ]; then
+            STARS=0
+          fi
+          
+          # Se MAIN_LANG for null, definir como "Various"
+          if [ "$MAIN_LANG" = "null" ] || [ -z "$MAIN_LANG" ]; then
+            MAIN_LANG="Various"
+          fi
+          
           echo "repos=$REPOS" >> $GITHUB_OUTPUT
           echo "followers=$FOLLOWERS" >> $GITHUB_OUTPUT
           echo "stars=$STARS" >> $GITHUB_OUTPUT
-          echo "main_lang=${MAIN_LANG:-Various}" >> $GITHUB_OUTPUT
+          echo "main_lang=$MAIN_LANG" >> $GITHUB_OUTPUT
       
       - name: 🎨 Generate SVG card
+        env:
+          REPOS: ${{ steps.fetch-data.outputs.repos }}
+          FOLLOWERS: ${{ steps.fetch-data.outputs.followers }}
+          STARS: ${{ steps.fetch-data.outputs.stars }}
+          MAIN_LANG: ${{ steps.fetch-data.outputs.main_lang }}
+          USERNAME: ${{ github.event.inputs.username }}
+          STYLE: ${{ github.event.inputs.style }}
         run: |
           mkdir -p guild-cards
           
-          # Generate card based on selected style
-          STYLE="${{ github.event.inputs.style }}"
+          # Calcular nível baseado nas estatísticas
+          TOTAL_XP=$((REPOS * 50 + STARS * 10 + FOLLOWERS * 5))
+          LEVEL=$((TOTAL_XP / 1000 + 1))
           
+          # Determinar classe baseada nas estatísticas
+          if [ "$REPOS" -gt 100 ] || [ "$STARS" -gt 1000 ]; then
+            GUILD_CLASS="Arquiteto"
+            CLASS_COLOR="#ffd700"
+          elif [ "$REPOS" -gt 50 ] || [ "$FOLLOWERS" -gt 500 ]; then
+            GUILD_CLASS="Mestre"
+            CLASS_COLOR="#c0c0c0"
+          elif [ "$REPOS" -gt 20 ] || [ "$FOLLOWERS" -gt 100 ]; then
+            GUILD_CLASS="Veterano"
+            CLASS_COLOR="#cd7f32"
+          else
+            GUILD_CLASS="Aprendiz"
+            CLASS_COLOR="#8a2be2"
+          fi
+          
+          # Data atual
+          CURRENT_DATE=$(date +'%d/%m/%Y')
+          
+          # Gerar SVG baseado no estilo
           case "$STYLE" in
             "neon-ninja")
-              COLOR_SCHEME="neon"
+              SVG_CONTENT=$(cat << 'EOF'
+              <svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280">
+                <defs>
+                  <linearGradient id="neonBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0f0f23"/>
+                    <stop offset="100%" stop-color="#1a1a2e"/>
+                  </linearGradient>
+                </defs>
+                
+                <rect width="400" height="280" rx="12" ry="12" fill="url(#neonBg)" stroke="#00ffcc" stroke-width="2"/>
+                
+                <text x="30" y="40" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#00ffcc">GILDEN KAI</text>
+                <text x="30" y="65" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">@$USERNAME</text>
+                <text x="30" y="90" font-family="Arial, sans-serif" font-size="12" fill="#b0b0ff">$GUILD_CLASS • Nível $LEVEL</text>
+                
+                <g transform="translate(30, 120)">
+                  <text font-family="Arial, sans-serif" font-size="10" fill="#00ffcc">Repositórios:</text>
+                  <text x="100" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$REPOS</text>
+                  
+                  <text y="20" font-family="Arial, sans-serif" font-size="10" fill="#00ffcc">Estrelas:</text>
+                  <text x="100" y="20" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$STARS</text>
+                  
+                  <text y="40" font-family="Arial, sans-serif" font-size="10" fill="#00ffcc">Seguidores:</text>
+                  <text x="100" y="40" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$FOLLOWERS</text>
+                  
+                  <text y="60" font-family="Arial, sans-serif" font-size="10" fill="#00ffcc">Linguagem:</text>
+                  <text x="100" y="60" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$MAIN_LANG</text>
+                </g>
+                
+                <text x="200" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#00ffcc">
+                  Gerado em $CURRENT_DATE
+                </text>
+                <text x="200" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#8888cc">
+                  Estilo: Neon Ninja • Gilden Kai
+                </text>
+              </svg>
+              EOF
+              )
               ;;
+              
             "blood-mage")
-              COLOR_SCHEME="blood"
+              SVG_CONTENT=$(cat << 'EOF'
+              <svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280">
+                <defs>
+                  <linearGradient id="bloodBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#2d0f0f"/>
+                    <stop offset="100%" stop-color="#1a0a0a"/>
+                  </linearGradient>
+                </defs>
+                
+                <rect width="400" height="280" rx="12" ry="12" fill="url(#bloodBg)" stroke="#ff3366" stroke-width="2"/>
+                
+                <text x="30" y="40" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ff3366">BLOOD MAGE</text>
+                <text x="30" y="65" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">@$USERNAME</text>
+                <text x="30" y="90" font-family="Arial, sans-serif" font-size="12" fill="#ff7777">$GUILD_CLASS • Nível $LEVEL</text>
+                
+                <g transform="translate(30, 120)">
+                  <text font-family="Arial, sans-serif" font-size="10" fill="#ff7777">Repositórios:</text>
+                  <text x="100" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$REPOS</text>
+                  
+                  <text y="20" font-family="Arial, sans-serif" font-size="10" fill="#ff7777">Estrelas:</text>
+                  <text x="100" y="20" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$STARS</text>
+                  
+                  <text y="40" font-family="Arial, sans-serif" font-size="10" fill="#ff7777">Seguidores:</text>
+                  <text x="100" y="40" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$FOLLOWERS</text>
+                  
+                  <text y="60" font-family="Arial, sans-serif" font-size="10" fill="#ff7777">Linguagem:</text>
+                  <text x="100" y="60" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$MAIN_LANG</text>
+                </g>
+                
+                <text x="200" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#ff7777">
+                  Gerado em $CURRENT_DATE
+                </text>
+                <text x="200" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#8888cc">
+                  Estilo: Blood Mage • Gilden Kai
+                </text>
+              </svg>
+              EOF
+              )
               ;;
+              
             "cyber-shinobi")
-              COLOR_SCHEME="cyber"
+              SVG_CONTENT=$(cat << 'EOF'
+              <svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280">
+                <defs>
+                  <linearGradient id="cyberBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0a0a1a"/>
+                    <stop offset="100%" stop-color="#151530"/>
+                  </linearGradient>
+                </defs>
+                
+                <rect width="400" height="280" rx="12" ry="12" fill="url(#cyberBg)" stroke="#8a2be2" stroke-width="2"/>
+                
+                <text x="30" y="40" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#8a2be2">CYBER SHINOBI</text>
+                <text x="30" y="65" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">@$USERNAME</text>
+                <text x="30" y="90" font-family="Arial, sans-serif" font-size="12" fill="#b0b0ff">$GUILD_CLASS • Nível $LEVEL</text>
+                
+                <g transform="translate(30, 120)">
+                  <text font-family="Arial, sans-serif" font-size="10" fill="#b0b0ff">Repositórios:</text>
+                  <text x="100" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$REPOS</text>
+                  
+                  <text y="20" font-family="Arial, sans-serif" font-size="10" fill="#b0b0ff">Estrelas:</text>
+                  <text x="100" y="20" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$STARS</text>
+                  
+                  <text y="40" font-family="Arial, sans-serif" font-size="10" fill="#b0b0ff">Seguidores:</text>
+                  <text x="100" y="40" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$FOLLOWERS</text>
+                  
+                  <text y="60" font-family="Arial, sans-serif" font-size="10" fill="#b0b0ff">Linguagem:</text>
+                  <text x="100" y="60" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$MAIN_LANG</text>
+                </g>
+                
+                <text x="200" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#b0b0ff">
+                  Gerado em $CURRENT_DATE
+                </text>
+                <text x="200" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#8888cc">
+                  Estilo: Cyber Shinobi • Gilden Kai
+                </text>
+              </svg>
+              EOF
+              )
               ;;
+              
             *)
-              COLOR_SCHEME="samurai"
+              # dark-samurai (default)
+              SVG_CONTENT=$(cat << 'EOF'
+              <svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280">
+                <defs>
+                  <linearGradient id="samuraiBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#1a1a2e"/>
+                    <stop offset="100%" stop-color="#16213e"/>
+                  </linearGradient>
+                </defs>
+                
+                <rect width="400" height="280" rx="12" ry="12" fill="url(#samuraiBg)" stroke="#ff0033" stroke-width="2"/>
+                
+                <text x="30" y="40" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ff0033">DARK SAMURAI</text>
+                <text x="30" y="65" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">@$USERNAME</text>
+                <text x="30" y="90" font-family="Arial, sans-serif" font-size="12" fill="#8888cc">$GUILD_CLASS • Nível $LEVEL</text>
+                
+                <g transform="translate(30, 120)">
+                  <text font-family="Arial, sans-serif" font-size="10" fill="#b0b0ff">Repositórios:</text>
+                  <text x="100" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$REPOS</text>
+                  
+                  <text y="20" font-family="Arial, sans-serif" font-size="10" fill="#b0b0ff">Estrelas:</text>
+                  <text x="100" y="20" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$STARS</text>
+                  
+                  <text y="40" font-family="Arial, sans-serif" font-size="10" fill="#b0b0ff">Seguidores:</text>
+                  <text x="100" y="40" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$FOLLOWERS</text>
+                  
+                  <text y="60" font-family="Arial, sans-serif" font-size="10" fill="#b0b0ff">Linguagem:</text>
+                  <text x="100" y="60" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">$MAIN_LANG</text>
+                </g>
+                
+                <text x="200" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#8888cc">
+                  Gerado em $CURRENT_DATE
+                </text>
+                <text x="200" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#666699">
+                  Estilo: Dark Samurai • Gilden Kai
+                </text>
+              </svg>
+              EOF
+              )
               ;;
           esac
           
-          echo "Generating $STYLE card with $COLOR_SCHEME theme"
+          # Salvar SVG
+          echo "$SVG_CONTENT" > "guild-cards/$USERNAME.svg"
           
-          # Create SVG template (simplified for example)
-          cat > guild-cards/${{ github.event.inputs.username }}.svg << 'EOF'
-          <svg xmlns="http://www.w3.org/2000/svg" width="400" height="280">
-            <!-- Card content will be generated here -->
-            <text x="50" y="50">Gilden Kai Card for ${{ github.event.inputs.username }}</text>
-            <text x="50" y="80">Style: ${{ github.event.inputs.style }}</text>
-          </svg>
-          EOF
+          echo "✅ SVG card generated for $USERNAME with $STYLE style"
       
       - name: 💾 Commit and push
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add guild-cards/
-          git commit -m "🎴 Add/update guild card for ${{ github.event.inputs.username }}"
-          git push
         env:
-          GITHUB_TOKEN: ${{ secrets.Ciconha_tsukuyomi }}
+          # Usar PERSONAL_ACCESS_TOKEN se disponível
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Adicionar apenas o arquivo SVG específico
+          git add "guild-cards/${{ github.event.inputs.username }}.svg"
+          
+          # Verificar se há mudanças para commitar
+          if git diff --cached --quiet; then
+            echo "ℹ️ No changes to commit"
+          else
+            git commit -m "🎴 Add/update guild card for ${{ github.event.inputs.username }} [skip ci]"
+            
+            # Fazer push com o token correto
+            git push origin HEAD:${{ github.ref_name }}
+            echo "✅ Card successfully committed and pushed"
+          fi
