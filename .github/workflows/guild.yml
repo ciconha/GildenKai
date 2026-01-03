@@ -34,7 +34,7 @@ jobs:
       - name: 🔍 Fetch GitHub data
         id: fetch-data
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.Ciconha_tsukuyomi }}
         run: |
           USER="${{ github.event.inputs.username }}"
           
@@ -100,4 +100,4 @@ jobs:
           git commit -m "🎴 Add/update guild card for ${{ github.event.inputs.username }}"
           git push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.Ciconha_tsukuyomi }}
