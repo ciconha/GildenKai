@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Guild - Galeria de Projetos</title>
+    <link rel="stylesheet" href="assets/css/projects.css">
+    <link rel="stylesheet" href="assets/css/projects.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="projects-container">
+        <!-- Header -->
+        <header class="projects-header">
+            <a href="index.html" class="back-home">
+                <i class="fas fa-arrow-left"></i> Guilda
+            </a>
+            <h1><i class="fas fa-project-diagram"></i> Galeria de Projetos</h1>
+            <div class="view-controls">
+                <button class="view-btn active" data-view="grid">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button class="view-btn" data-view="list">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Filtros -->
+        <div class="projects-filters">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="projectSearch" placeholder="Buscar projetos...">
+            </div>
+            <select id="languageFilter" class="filter-select">
+                <option value="">Todas as Linguagens</option>
+                <!-- Opções serão preenchidas dinamicamente -->
+            </select>
+            <select id="sortFilter" class="filter-select">
+                <option value="stars">Mais Estrelas</option>
+                <option value="updated">Recentes</option>
+                <option value="forks">Mais Forks</option>
+                <option value="size">Tamanho</option>
+            </select>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="projects-stats" id="projectsStats">
+            <!-- Estatísticas serão carregadas dinamicamente -->
+        </div>
+
+        <!-- Grid de Projetos -->
+        <div class="projects-grid" id="projectsGrid">
+            <!-- Projetos serão carregados dinamicamente -->
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-projects" id="loadingProjects">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Carregando missões concluídas...</p>
+        </div>
+
+        <!-- Footer -->
+        <footer class="projects-footer">
+            <p>GitHub Guild Project Gallery • Total de missões: <span id="totalProjects">0</span></p>
+        </footer>
+    </div>
+
+    <!-- Modal de Detalhes -->
+    <div class="project-modal" id="projectModal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo do modal será preenchido dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/projects.js"></script>
+</body>
+</html>
