@@ -1,166 +1,447 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🛡️ Criador de Guild Card - Workflow Generator</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Guild - Portal de Acesso</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
-
 <body>
-  <div class="container">
-    <!-- 🔰 Header -->
-    <header class="hero">
-      <h1>🎮 Criador de Guild Card + Workflow</h1>
-      <p class="subtitle">Crie seu cartão RPG e gere automaticamente o workflow GitHub!</p>
-      <p class="description">Preencha o formulário abaixo para gerar seu arquivo <code>guild.yml</code> personalizado.</p>
-    </header>
+    <!-- Portal de Acesso -->
+    <div class="portal-overlay active" id="portalOverlay">
+        <div class="portal-container">
+            <div class="portal-content">
+                <div class="portal-header">
+                    <div class="portal-logo">
+                        <i class="fas fa-dragon"></i>
+                        <h1>GitHub Guild</h1>
+                    </div>
+                    <p class="portal-motto">"Onde o código encontra a lenda"</p>
+                </div>
 
-    <!-- 📋 Formulário -->
-    <section class="form-section">
-      <div class="form-container">
-        <form id="guildForm" onsubmit="event.preventDefault()">
-          <!-- 👤 Informações Pessoais -->
-          <div class="form-group">
-            <h3>👤 Informações Pessoais</h3>
+                <div class="portal-form">
+                    <h2 class="portal-title">
+                        <i class="fas fa-door-open"></i> Acesso à Guilda
+                    </h2>
+                    
+                    <div class="form-group">
+                        <label for="portalUsername">
+                            <i class="fab fa-github"></i> Nome do Aventureiro
+                        </label>
+                        <input type="text" 
+                               id="portalUsername" 
+                               class="portal-input"
+                               placeholder="Digite seu username do GitHub"
+                               autocomplete="off"
+                               autocorrect="off"
+                               spellcheck="false">
+                        <small>Exemplo: octocat</small>
+                    </div>
 
-            <div class="input-row">
-              <div class="input-group">
-                <label for="username">GitHub Username *</label>
-                <input type="text" id="username" placeholder="ex: ciconha" required>
-                <small>Seu nome de usuário no GitHub</small>
-              </div>
+                    <div class="portal-actions">
+                        <button id="portalAccess" class="portal-btn primary">
+                            <i class="fas fa-key"></i> Acessar Guilda
+                        </button>
+                        <button id="portalDemo" class="portal-btn secondary">
+                            <i class="fas fa-eye"></i> Ver Demo
+                        </button>
+                    </div>
 
-              <div class="input-group">
-                <label for="empresa">Empresa</label>
-                <input type="text" id="empresa" placeholder="Google, Microsoft, etc...">
-                <small>Onde você trabalha (opcional)</small>
-              </div>
+                    <div class="portal-features">
+                        <h3><i class="fas fa-gem"></i> Recursos Disponíveis</h3>
+                        <div class="features-grid">
+                            <div class="feature">
+                                <i class="fas fa-id-card"></i>
+                                <span>Cartão da Guilda</span>
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-scroll"></i>
+                                <span>Currículo Automático</span>
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-project-diagram"></i>
+                                <span>Galeria de Projetos</span>
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-award"></i>
+                                <span>Certificado Oficial</span>
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-qrcode"></i>
+                                <span>QR Code de Autorização</span>
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-trophy"></i>
+                                <span>Sistema de Ranking</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="portal-api-status">
+                        <span id="portalApiStatus">
+                            <i class="fas fa-circle"></i> GitHub API: Conectando...
+                        </span>
+                    </div>
+                </div>
+
+                <div class="portal-footer">
+                    <p>
+                        <i class="fas fa-shield-alt"></i> 
+                        Gildenkai Authorization System
+                    </p>
+                    <p class="copyright">© 2024 GitHub Guild - Todos os direitos protegidos</p>
+                </div>
             </div>
+        </div>
+    </div>
 
-            <div class="input-row">
-              <div class="input-group">
-                <label for="area">Área de Atuação *</label>
-                <select id="area" required>
-                  <option value="">Selecione sua área</option>
-                  <option value="frontend">🎨 Frontend Developer</option>
-                  <option value="backend">⚙️ Backend Developer</option>
-                  <option value="fullstack">🚀 Fullstack Developer</option>
-                  <option value="devops">🔧 DevOps Engineer</option>
-                  <option value="mobile">📱 Mobile Developer</option>
-                  <option value="data">📊 Data Scientist</option>
-                  <option value="ai">🤖 AI Engineer</option>
-                  <option value="security">🛡️ Security Engineer</option>
-                  <option value="qa">🧪 QA Engineer</option>
-                  <option value="ux">🎯 UX/UI Designer</option>
-                </select>
-                <small>Sua especialização</small>
-              </div>
-
-              <div class="input-group">
-                <label for="workflowName">Nome do Workflow</label>
-                <input type="text" id="workflowName" placeholder="guild-workflow" value="guild-workflow">
-                <small>Nome interno do workflow</small>
-              </div>
+    <!-- Aplicação Principal (inicialmente oculta) -->
+    <div class="container" id="mainApp" style="display: none;">
+        <!-- Header da Guilda -->
+        <header class="guild-header">
+            <div class="header-content">
+                <div class="guild-logo">
+                    <i class="fas fa-dragon"></i>
+                    <h1>GitHub Guild</h1>
+                </div>
+                <div class="guild-motto">
+                    <p id="userWelcome">Bem-vindo à Guilda!</p>
+                </div>
+                <nav class="guild-nav">
+                    <button class="nav-btn active" data-tab="dashboard">
+                        <i class="fas fa-home"></i> Dashboard
+                    </button>
+                    <button class="nav-btn" data-tab="card">
+                        <i class="fas fa-id-card"></i> Cartão
+                    </button>
+                    <button class="nav-btn" data-tab="resume">
+                        <i class="fas fa-scroll"></i> Currículo
+                    </button>
+                    <button class="nav-btn" data-tab="projects">
+                        <i class="fas fa-project-diagram"></i> Projetos
+                    </button>
+                    <button class="nav-btn" data-tab="certificate">
+                        <i class="fas fa-award"></i> Certificado
+                    </button>
+                    <button class="nav-btn" data-tab="qr">
+                        <i class="fas fa-qrcode"></i> QR Code
+                    </button>
+                    <button class="nav-btn" id="backToPortal">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </nav>
             </div>
+        </header>
 
-            <div class="input-row">
-              <div class="input-group full-width">
-                <label for="token">Token Secreto (Opcional)</label>
-                <input type="text" id="token" placeholder="NOME_DO_TOKEN_SECRETO">
-                <small>Ex: <code>MY_GITHUB_TOKEN</code> ou deixe vazio para usar o <code>GITHUB_TOKEN</code></small>
-              </div>
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Dashboard -->
+            <section id="dashboard" class="tab-content active">
+                <div class="dashboard-container">
+                    <div class="user-profile" id="userProfile">
+                        <!-- Perfil será carregado aqui -->
+                    </div>
+                    
+                    <div class="quick-access">
+                        <h2 class="section-title">
+                            <i class="fas fa-bolt"></i> Acesso Rápido
+                        </h2>
+                        <div class="access-grid">
+                            <a href="Cartão_da_Guilda.html" class="access-card" data-action="card">
+                                <i class="fas fa-id-card"></i>
+                                <span>Criar Cartão</span>
+                                <small>Forje seu cartão de guilda</small>
+                            </a>
+                            <a href="resume.html" class="access-card" data-action="resume">
+                                <i class="fas fa-scroll"></i>
+                                <span>Ver Currículo</span>
+                                <small>Currículo automatizado</small>
+                            </a>
+                            <a href="projects.html" class="access-card" data-action="projects">
+                                <i class="fas fa-project-diagram"></i>
+                                <span>Ver Projetos</span>
+                                <small>Galeria completa</small>
+                            </a>
+                             <a href="rank.html" class="access-card" data-action="projects">
+                                <i class="fas fa-project-diagram"></i>
+                                <span>Rank</span>
+                                <small>Veja sua posição</small>
+                            </a>
+                            <button class="access-card" onclick="window.open('https://github.com/' + window.githubGuild?.currentUser, '_blank')">
+                                <i class="fab fa-github"></i>
+                                <span>GitHub Profile</span>
+                                <small>Ver perfil no GitHub</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="guild-stats">
+                        <h2 class="section-title">
+                            <i class="fas fa-chart-line"></i> Estatísticas da Guilda
+                        </h2>
+                        <div class="stats-grid" id="guildStats">
+                            <!-- Estatísticas serão carregadas aqui -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cartão da Guilda -->
+            <section id="card" class="tab-content">
+                <div class="card-container">
+                    <div class="card-generator">
+                        <h2 class="section-title">
+                            <i class="fas fa-magic"></i> Forjar Cartão da Guilda
+                        </h2>
+                        
+                        <div class="generator-form">
+                            <div class="form-group">
+                                <label for="githubUsername">
+                                    <i class="fab fa-github"></i> Nome do Aventureiro
+                                </label>
+                                <input type="text" id="githubUsername" 
+                                       placeholder="Digite seu username do GitHub" 
+                                       class="form-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="characterClass">
+                                    <i class="fas fa-shield-alt"></i> Classe do Personagem
+                                </label>
+                                <select id="characterClass" class="form-input">
+                                    <option value="mage">Mago do Código</option>
+                                    <option value="warrior">Guerreiro Frontend</option>
+                                    <option value="rogue">Ladino Backend</option>
+                                    <option value="ranger">Arqueiro Fullstack</option>
+                                    <option value="cleric">Clérigo DevOps</option>
+                                    <option value="alchemist">Alquimista de Dados</option>
+                                    <option value="artificer">Artesão UI/UX</option>
+                                    <option value="bard">Bardo da Documentação</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="specialization">
+                                    <i class="fas fa-gem"></i> Especialização
+                                </label>
+                                <select id="specialization" class="form-input">
+                                    <option value="frontend">Frontend Master</option>
+                                    <option value="backend">Backend Sorcerer</option>
+                                    <option value="fullstack">Fullstack Legend</option>
+                                    <option value="mobile">Mobile Ranger</option>
+                                    <option value="ai">AI Alchemist</option>
+                                    <option value="security">Security Guardian</option>
+                                    <option value="cloud">Cloud Archmage</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    <i class="fas fa-palette"></i> Tema do Cartão
+                                </label>
+                                <div class="theme-selector">
+                                    <button class="theme-btn active" data-theme="dark">
+                                        <span class="theme-preview dark"></span>
+                                        Dark
+                                    </button>
+                                    <button class="theme-btn" data-theme="abyss">
+                                        <span class="theme-preview abyss"></span>
+                                        Abismo
+                                    </button>
+                                    <button class="theme-btn" data-theme="crimson">
+                                        <span class="theme-preview crimson"></span>
+                                        Carmesim
+                                    </button>
+                                    <button class="theme-btn" data-theme="mystic">
+                                        <span class="theme-preview mystic"></span>
+                                        Místico
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button id="generateCard" class="generate-btn">
+                                <i class="fas fa-hammer"></i> Forjar Cartão
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-preview">
+                        <div class="guild-card" id="guildCard">
+                            <div class="card-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>O cartão será forjado aqui...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card-actions">
+                            <button id="downloadCard" class="action-btn" disabled>
+                                <i class="fas fa-download"></i> Baixar
+                            </button>
+                            <button id="shareCard" class="action-btn" disabled>
+                                <i class="fas fa-share-alt"></i> Compartilhar
+                            </button>
+                            <button id="copyCard" class="action-btn" disabled>
+                                <i class="fas fa-code"></i> Copiar SVG
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Currículo -->
+            <section id="resume" class="tab-content">
+                <div class="resume-container">
+                    <div class="resume-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-scroll"></i> Currículo da Guilda
+                        </h2>
+                        <div class="resume-actions">
+                            <button id="printResume" class="action-btn">
+                                <i class="fas fa-print"></i> Imprimir
+                            </button>
+                            <button id="downloadResume" class="action-btn">
+                                <i class="fas fa-download"></i> Baixar PDF
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="resume-content" id="resumeContent">
+                        <!-- Currículo será carregado aqui -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projetos -->
+            <section id="projects" class="tab-content">
+                <div class="projects-container">
+                    <div class="projects-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-project-diagram"></i> Galeria de Projetos
+                        </h2>
+                        <div class="projects-controls">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="projectSearch" placeholder="Buscar projetos...">
+                            </div>
+                            <select id="projectSort" class="form-input">
+                                <option value="stars">Mais Estrelas</option>
+                                <option value="updated">Recentes</option>
+                                <option value="forks">Mais Forks</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="projects-stats" id="projectsStats">
+                        <!-- Estatísticas dos projetos -->
+                    </div>
+                    
+                    <div class="projects-grid" id="projectsGrid">
+                        <!-- Projetos serão carregados aqui -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Certificado -->
+            <section id="certificate" class="tab-content">
+                <div class="certificate-container">
+                    <div class="certificate-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-award"></i> Certificado de Autorização
+                        </h2>
+                        <div class="certificate-actions">
+                            <button id="downloadCertificate" class="action-btn">
+                                <i class="fas fa-download"></i> Baixar
+                            </button>
+                            <button id="shareCertificate" class="action-btn">
+                                <i class="fas fa-share-alt"></i> Compartilhar
+                            </button>
+                            <button id="verifyCertificate" class="action-btn">
+                                <i class="fas fa-shield-check"></i> Verificar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="certificate-content" id="certificateContent">
+                        <!-- Certificado será carregado aqui -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- QR Code -->
+            <section id="qr" class="tab-content">
+                <div class="qr-container">
+                    <div class="qr-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-qrcode"></i> Código de Autorização
+                        </h2>
+                        <div class="qr-actions">
+                            <button id="downloadQR" class="action-btn">
+                                <i class="fas fa-download"></i> Baixar
+                            </button>
+                            <button id="printQR" class="action-btn">
+                                <i class="fas fa-print"></i> Imprimir
+                            </button>
+                            <button id="refreshQR" class="action-btn">
+                                <i class="fas fa-redo"></i> Atualizar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="qr-content" id="qrContent">
+                        <!-- QR Code será gerado aqui -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="guild-footer">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p>
+                        <i class="fas fa-dragon"></i> GitHub Guild - Gildenkai Authorization System
+                    </p>
+                    <p>© 2024 Todos os direitos protegidos pelo Código do Desenvolvedor</p>
+                </div>
+                <div class="footer-links">
+                    <a href="https://github.com" target="_blank" class="footer-link">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+                    <a href="#" class="footer-link" onclick="showAbout()">
+                        <i class="fas fa-scroll"></i> Sobre
+                    </a>
+                    <a href="#" class="footer-link" onclick="showHelp()">
+                        <i class="fas fa-question-circle"></i> Ajuda
+                    </a>
+                </div>
             </div>
-          </div>
+        </footer>
 
-          <!-- ⚙️ Botões -->
-          <div class="form-actions">
-            <button type="button" class="btn preview" onclick="previewWorkflow()">👁️ Visualizar Workflow</button>
-            <button type="button" class="btn generate" onclick="generateWorkflow()">⚡ Gerar guild.yml</button>
-            <button type="reset" class="btn reset">🔄 Limpar</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- 📄 Preview -->
-      <div class="preview-section">
-        <h3>📋 Preview do Workflow</h3>
-        <div class="preview-container">
-          <pre id="workflowPreview" class="code-preview">
-# Seu workflow aparecerá aqui...
-# Preencha o formulário e clique em "Visualizar Workflow"
-          </pre>
+        <!-- Notificação -->
+        <div id="notification" class="notification">
+            <div class="notification-content">
+                <i class="notification-icon"></i>
+                <span class="notification-message"></span>
+            </div>
         </div>
 
-        <div class="preview-actions hidden" id="previewActions">
-          <button class="btn download" onclick="generateWorkflow()">💾 Baixar guild.yml</button>
-          <button class="btn copy" onclick="copyWorkflow()">📋 Copiar YAML</button>
+        <!-- Loading -->
+        <div id="loading" class="loading-overlay">
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <p class="loading-text">Carregando...</p>
+            </div>
         </div>
+    </div>
 
-        <!-- ℹ️ Instruções -->
-        <div class="instructions">
-          <h4>📚 Como usar:</h4>
-          <ol>
-            <li>Preencha o formulário com suas informações</li>
-            <li>Visualize o workflow e faça o download</li>
-            <li>Coloque o arquivo na pasta <code>.github/workflows/</code> do seu repositório</li>
-            <li>Adicione seu token GitHub (se necessário) em <code>Settings → Secrets → Actions</code></li>
-            <li>O workflow irá gerar automaticamente seu cartão SVG</li>
-          </ol>
-        </div>
-      </div>
-    </section>
-
-    <!-- 🧠 Exemplos -->
-    <section class="examples">
-      <h2>🎯 Exemplos de Configuração</h2>
-      <div class="examples-grid">
-        <div class="example-card">
-          <h4>🚀 Configuração Básica</h4>
-          <pre><code>name: Guild Card
-on:
-  schedule:
-    - cron: '0 0 * * 0'
-  workflow_dispatch:
-
-jobs:
-  gerar-card:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate SVG
-        run: echo "Cartão gerado!"</code></pre>
-        </div>
-
-        <div class="example-card">
-          <h4>🎨 Configuração Avançada</h4>
-          <pre><code>name: Guild Card Pro
-on:
-  schedule:
-    - cron: '0 12 * * *'
-  push:
-    branches: [ main ]
-
-jobs:
-  generate-card:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate Card
-        uses: guild-card-action@v1
-        with:
-          username: ${{ github.actor }}
-          style: medieval
-          size: large</code></pre>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- 🔔 Toast -->
-  <div id="toast" class="toast hidden"></div>
-
-  <!-- 🚀 Script -->
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
