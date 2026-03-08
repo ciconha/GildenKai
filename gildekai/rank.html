@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Rank - Sistema de Ranking</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/rank.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-trophy"></i>
+                    <h1>GitHub<span>Rank</span></h1>
+                </div>
+                <nav class="nav">
+                    <a href="#search" class="nav-link active">Ranking</a>
+                    <a href="#leaderboard" class="nav-link">Leaderboard</a>
+                    <a href="#classes" class="nav-link">Classes</a>
+                    <a href="#achievements" class="nav-link">Conquistas</a>
+                    
+                </nav>
+                <div class="theme-toggle">
+                    <button id="themeToggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Search Section -->
+            <section id="search" class="search-section">
+                <div class="search-card">
+                    <div class="search-header">
+                        <h2><i class="fab fa-github"></i> Buscar Desenvolvedor</h2>
+                        <p>Digite um username do GitHub para ver seu ranking</p>
+                    </div>
+                    <div class="search-box">
+                        <div class="input-group">
+                            <i class="fas fa-user"></i>
+                            <input type="text" 
+                                   id="usernameInput" 
+                                   placeholder="ex: octocat, torvalds, etc."
+                                   autocomplete="off"
+                                   spellcheck="false">
+                            <button id="searchBtn" class="btn-primary">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </div>
+                        <div class="search-examples">
+                            <small>Escreva o nome de usuário do GitHub</small>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Card -->
+            <section id="profile" class="profile-section" style="display: none;">
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <button id="backBtn" class="back-btn">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </button>
+                        <h2 id="profileTitle">Perfil do Desenvolvedor</h2>
+                        <button id="refreshBtn" class="refresh-btn">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+
+                    <div class="profile-content">
+                        <!-- User Basic Info -->
+                        <div class="user-basic">
+                            <div class="avatar-container">
+                                <img id="userAvatar" src="" alt="Avatar" class="avatar">
+                                <div class="avatar-badge" id="rankBadge">
+                                    <span id="rankLevel">S</span>
+                                </div>
+                            </div>
+                            <div class="user-info">
+                                <h2 id="userName">Nome do Usuário</h2>
+                                <p id="userLogin">@username</p>
+                                <p id="userBio" class="user-bio">Bio do usuário...</p>
+                                <div class="user-meta">
+                                    <span class="meta-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span id="userLocation">Localização</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-link"></i>
+                                        <a id="userBlog" href="#" target="_blank">Website</a>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-calendar"></i>
+                                        <span id="userCreated">Membro desde</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-code-branch"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-value" id="reposCount">0</span>
+                                    <span class="stat-label">Repositórios</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-value" id="starsCount">0</span>
+                                    <span class="stat-label">Estrelas</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-value" id="followersCount">0</span>
+                                    <span class="stat-label">Seguidores</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-value" id="followingCount">0</span>
+                                    <span class="stat-label">Seguindo</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rank Info -->
+                        <div class="rank-container">
+                            <div class="rank-card">
+                                <div class="rank-header">
+                                    <h3><i class="fas fa-trophy"></i> Rank Atual</h3>
+                                    <div class="rank-pill" id="rankPill">
+                                        <span class="rank-name">Legend</span>
+                                    </div>
+                                </div>
+                                <div class="rank-body">
+                                    <div class="rank-info">
+                                        <div class="info-item">
+                                            <span class="info-label">Nível</span>
+                                            <span class="info-value" id="userLevel">100</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">XP Total</span>
+                                            <span class="info-value" id="totalXP">0</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Próximo Nível</span>
+                                            <span class="info-value" id="nextLevelXP">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="xp-bar-container">
+                                        <div class="xp-bar">
+                                            <div class="xp-progress" id="xpProgress"></div>
+                                        </div>
+                                        <div class="xp-text">
+                                            <span id="currentXP">0</span> / <span id="requiredXP">0</span> XP
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="class-card">
+                                <div class="class-header">
+                                    <h3><i class="fas fa-shield-alt"></i> Classe</h3>
+                                </div>
+                                <div class="class-body">
+                                    <div class="class-icon" id="classIcon">
+                                        <i class="fas fa-code"></i>
+                                    </div>
+                                    <h4 id="className">Full Stack Developer</h4>
+                                    <p id="classDescription">Mestre em todas as camadas do desenvolvimento</p>
+                                    <div class="class-skills">
+                                        <span class="skill-tag" id="primarySkill">JavaScript</span>
+                                        <span class="skill-tag" id="secondarySkill">TypeScript</span>
+                                        <span class="skill-tag" id="tertiarySkill">React</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Achievements -->
+                        <div class="achievements-container">
+                            <div class="achievements-header">
+                                <h3><i class="fas fa-award"></i> Conquistas</h3>
+                                <span class="achievements-count" id="achievementsCount">0/10</span>
+                            </div>
+                            <div class="achievements-grid" id="achievementsGrid">
+                                <!-- Conquistas serão geradas aqui -->
+                            </div>
+                        </div>
+
+                        <!-- Top Repositories -->
+                        <div class="repos-container">
+                            <div class="repos-header">
+                                <h3><i class="fas fa-project-diagram"></i> Top Repositórios</h3>
+                            </div>
+                            <div class="repos-list" id="topRepos">
+                                <!-- Repositórios serão gerados aqui -->
+                            </div>
+                        </div>
+
+                        <!-- Share Section -->
+                        <div class="share-section">
+                            <button id="shareBtn" class="btn-secondary">
+                                <i class="fas fa-share-alt"></i> Compartilhar Rank
+                            </button>
+                            <button id="downloadBtn" class="btn-secondary">
+                                <i class="fas fa-download"></i> Baixar Badge
+                            </button>
+                            <a id="githubLink" href="#" target="_blank" class="btn-primary">
+                                <i class="fab fa-github"></i> Ver no GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Classes Info -->
+            <section id="classes" class="classes-section">
+                <div class="classes-card">
+                    <div class="classes-header">
+                        <h2><i class="fas fa-shield-alt"></i> Classes de Desenvolvedor</h2>
+                        <p>Descubra sua classe baseada nas suas habilidades</p>
+                    </div>
+                    <div class="classes-grid">
+                        <div class="class-info-card">
+                            <div class="class-icon" style="color: #9f7aea;">
+                                <i class="fas fa-hat-wizard"></i>
+                            </div>
+                            <h3>Mago do Frontend</h3>
+                            <p>Especialista em interfaces e experiências do usuário</p>
+                            <div class="class-stats">
+                                <span>HTML/CSS/JS</span>
+                                <span>React/Vue</span>
+                                <span>UI/UX</span>
+                            </div>
+                        </div>
+                        <div class="class-info-card">
+                            <div class="class-icon" style="color: #4299e1;">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <h3>Guardião do Backend</h3>
+                            <p>Mestre da lógica e infraestrutura de servidores</p>
+                            <div class="class-stats">
+                                <span>Node.js/Python</span>
+                                <span>APIs</span>
+                                <span>Databases</span>
+                            </div>
+                        </div>
+                        <div class="class-info-card">
+                            <div class="class-icon" style="color: #ed8936;">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            <h3>Lendario FullStack</h3>
+                            <p>Domina todas as camadas do desenvolvimento</p>
+                            <div class="class-stats">
+                                <span>Full Stack</span>
+                                <span>DevOps</span>
+                                <span>Architecture</span>
+                            </div>
+                        </div>
+                        <div class="class-info-card">
+                            <div class="class-icon" style="color: #48bb78;">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <h3>Feiticeiro Mobile</h3>
+                            <p>Especialista em aplicações móveis nativas</p>
+                            <div class="class-stats">
+                                <span>React Native</span>
+                                <span>Flutter</span>
+                                <span>iOS/Android</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rankings Info -->
+            <section id="rankings" class="rankings-section">
+                <div class="rankings-card">
+                    <div class="rankings-header">
+                        <h2><i class="fas fa-medal"></i> Sistema de Ranking</h2>
+                        <p>Como funciona o cálculo de XP e níveis</p>
+                    </div>
+                    <div class="rankings-table">
+                        <div class="table-header">
+                            <span>Rank</span>
+                            <span>XP Necessário</span>
+                            <span>Descrição</span>
+                        </div>
+                        <div class="table-body">
+                            <div class="table-row legendary">
+                                <span class="rank-name">S - Lendário</span>
+                                <span class="rank-xp">50,000+ XP</span>
+                                <span class="rank-desc">Mestre das artes do código</span>
+                            </div>
+                            <div class="table-row epic">
+                                <span class="rank-name">A - Épico</span>
+                                <span class="rank-xp">25,000+ XP</span>
+                                <span class="rank-desc">Desenvolvedor de elite</span>
+                            </div>
+                            <div class="table-row rare">
+                                <span class="rank-name">B - Raro</span>
+                                <span class="rank-xp">10,000+ XP</span>
+                                <span class="rank-desc">Desenvolvedor avançado</span>
+                            </div>
+                            <div class="table-row uncommon">
+                                <span class="rank-name">C - Incomum</span>
+                                <span class="rank-xp">5,000+ XP</span>
+                                <span class="rank-desc">Desenvolvedor intermediário</span>
+                            </div>
+                            <div class="table-row common">
+                                <span class="rank-name">D - Comum</span>
+                                <span class="rank-xp">1,000+ XP</span>
+                                <span class="rank-desc">Desenvolvedor iniciante</span>
+                            </div>
+                            <div class="table-row beginner">
+                                <span class="rank-name">E - Iniciante</span>
+                                <span class="rank-xp">0+ XP</span>
+                                <span class="rank-desc">Novato na jornada</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <div class="footer-logo">
+                        <i class="fas fa-trophy"></i>
+                        <span>GitHubRank</span>
+                    </div>
+                    <p>Sistema de ranking baseado na API do GitHub</p>
+                </div>
+                <div class="footer-links">
+                    <a href="https://github.com" target="_blank">
+                        <i class="fab fa-github"></i> GitHub API
+                    </a>
+                    <a href="#" id="apiStatus">
+                        <i class="fas fa-circle"></i> Status: Verificando...
+                    </a>
+                </div>
+                <div class="footer-copyright">
+                    <p>© 2024 GitHubRank - Não afiliado ao GitHub Inc.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+            </div>
+            <p class="loading-text">Analisando perfil...</p>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <i class="notification-icon"></i>
+            <span class="notification-message"></span>
+        </div>
+    </div>
+
+    <script src="assets/js/rank.js"></script>
+</body>
+</html>
