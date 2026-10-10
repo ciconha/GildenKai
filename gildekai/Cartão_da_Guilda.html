@@ -6,7 +6,7 @@
     <title>GitHub Guild - Cartão de Guilda</title>
     <link rel="stylesheet" href="assets/css/card.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Raleway:wght@300;400;600;700&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Cinzel:wght@500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
 <body>
@@ -54,39 +54,20 @@
                             </label>
                             <input type="text" id="githubUsername" 
                                    placeholder="Digite seu username do GitHub" 
-                                   class="form-input">
+                                   class="form-input" autocomplete="off">
                             <small>Exemplo: seuusername</small>
                         </div>
 
+                        <!-- Classe é detectada automaticamente -->
                         <div class="form-group">
-                            <label for="characterClass">
-                                <i class="fas fa-shield-alt"></i> Classe do Personagem
+                            <label>
+                                <i class="fas fa-shield-alt"></i> Classe Detectada
                             </label>
-                            <select id="characterClass" class="form-input">
-                                <option value="mage">Mago do Código</option>
-                                <option value="warrior">Guerreiro Frontend</option>
-                                <option value="rogue">Ladino Backend</option>
-                                <option value="ranger">Arqueiro Fullstack</option>
-                                <option value="cleric">Clérigo DevOps</option>
-                                <option value="alchemist">Alquimista de Dados</option>
-                                <option value="artificer">Artesão UI/UX</option>
-                                <option value="bard">Bardo da Documentação</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="specialization">
-                                <i class="fas fa-gem"></i> Especialização
-                            </label>
-                            <select id="specialization" class="form-input">
-                                <option value="frontend">Frontend Master</option>
-                                <option value="backend">Backend Sorcerer</option>
-                                <option value="fullstack">Fullstack Legend</option>
-                                <option value="mobile">Mobile Ranger</option>
-                                <option value="ai">AI Alchemist</option>
-                                <option value="security">Security Guardian</option>
-                                <option value="cloud">Cloud Archmage</option>
-                            </select>
+                            <div id="detectedClass" class="detected-class">
+                                <i class="fas fa-hourglass-half"></i>
+                                <span>Aguardando invocação...</span>
+                            </div>
+                            <small>O sistema analisa seus repositórios e detecta automaticamente.</small>
                         </div>
 
                         <div class="form-group">
@@ -96,7 +77,7 @@
                             <div class="theme-selector">
                                 <button class="theme-btn" data-theme="dark" data-active="true">
                                     <span class="theme-preview dark"></span>
-                                    Dark
+                                    Shadow
                                 </button>
                                 <button class="theme-btn" data-theme="abyss">
                                     <span class="theme-preview abyss"></span>
@@ -106,9 +87,9 @@
                                     <span class="theme-preview crimson"></span>
                                     Carmesim
                                 </button>
-                                <button class="theme-btn" data-theme="mystic">
-                                    <span class="theme-preview mystic"></span>
-                                    Místico
+                                <button class="theme-btn" data-theme="monarch">
+                                    <span class="theme-preview monarch"></span>
+                                    Monarca
                                 </button>
                             </div>
                         </div>
@@ -126,26 +107,48 @@
 
                     <div class="card-preview">
                         <div class="guild-card" id="guildCard">
-                            <!-- Cartão será gerado aqui -->
                             <div class="card-loading">
-                                <i class="fas fa-spinner fa-spin"></i>
+                                <i class="fas fa-dragon"></i>
                                 <p>O cartão será forjado aqui...</p>
                             </div>
                         </div>
                         
                         <div class="card-actions">
-                            <button id="downloadCard" class="action-btn" disabled>
-                                <i class="fas fa-download"></i> Baixar Cartão
+                            <button id="downloadSvg" class="action-btn" disabled>
+                                <i class="fas fa-download"></i> Baixar SVG
                             </button>
-                            <button id="shareCard" class="action-btn" disabled>
-                                <i class="fas fa-share-alt"></i> Compartilhar
-                            </button>
-                            <button id="copyCode" class="action-btn" disabled>
+                            <button id="copySvg" class="action-btn" disabled>
                                 <i class="fas fa-code"></i> Copiar SVG
+                            </button>
+                            <button id="copyYaml" class="action-btn" disabled>
+                                <i class="fas fa-file-code"></i> Copiar YAML
+                            </button>
+                            <button id="downloadYaml" class="action-btn" disabled>
+                                <i class="fas fa-scroll"></i> Baixar Workflow
                             </button>
                         </div>
                     </div>
                 </div>
+
+                <!-- Conquistas Detalhadas -->
+                <section id="achievementsSection" class="achievements-section hidden">
+                    <h2 class="section-title">
+                        <i class="fas fa-trophy"></i> Conquistas Desbloqueadas
+                    </h2>
+                    <div id="achievementsGrid" class="achievements-grid"></div>
+                </section>
+
+                <!-- YAML Preview -->
+                <section id="yamlSection" class="yaml-section hidden">
+                    <h2 class="section-title">
+                        <i class="fas fa-file-code"></i> GitHub Action Workflow
+                    </h2>
+                    <p class="yaml-hint">
+                        Cole em <code>.github/workflows/guild-card.yml</code> no seu repositório. 
+                        O workflow regenera o cartão automaticamente.
+                    </p>
+                    <pre id="yamlPreview" class="yaml-preview"></pre>
+                </section>
             </section>
 
             <!-- Salão da Guilda -->
@@ -157,15 +160,11 @@
                     <div class="hall-content">
                         <div class="announcements">
                             <h3><i class="fas fa-bullhorn"></i> Anúncios da Guilda</h3>
-                            <div class="announcement-list" id="announcements">
-                                <!-- Anúncios serão carregados aqui -->
-                            </div>
+                            <div class="announcement-list" id="announcements"></div>
                         </div>
                         <div class="hall-stats">
                             <h3><i class="fas fa-chart-bar"></i> Estatísticas da Guilda</h3>
-                            <div class="stats-grid" id="guildStats">
-                                <!-- Stats serão carregados aqui -->
-                            </div>
+                            <div class="stats-grid" id="guildStats"></div>
                         </div>
                     </div>
                 </div>
@@ -179,14 +178,9 @@
                     </h2>
                     <div class="ranks-explanation">
                         <p>A hierarquia é determinada pelas contribuições ao mundo do código:</p>
-                        <div class="ranks-list" id="ranksList">
-                            <!-- Ranks serão carregados aqui -->
-                        </div>
+                        <div class="ranks-list" id="ranksList"></div>
                     </div>
                 </div>
-
-
-
             </section>
 
             <!-- Sobre -->
@@ -237,16 +231,6 @@
                 </div>
             </div>
         </footer>
-
-        <!-- Modal de QR Code -->
-        <div id="qrModal" class="modal">
-            <div class="modal-content">
-                <span class="close-modal">&times;</span>
-                <h3><i class="fas fa-qrcode"></i> Código de Autorização</h3>
-                <div id="qrCodeContainer"></div>
-                <p>Escaneie este código para verificar a autenticidade do cartão</p>
-            </div>
-        </div>
     </div>
 
     <script src="assets/js/card.js"></script>
