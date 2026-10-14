@@ -1,27 +1,23 @@
 /* =========================================================
-   ⚔ GuildenKain — Main Generator v6
-   - Habilita TODOS os .action-btn de uma vez
-   - Bind por classe, não por ID fixo
-   - Log de versão pra debug
+   ⚔ GuildenKain — Generator v7
+   Habilita TODOS os .action-btn via querySelectorAll
    ========================================================= */
 
-console.log('⚔ [GuildenKain] Carregando generator v6...');
+console.log('⚔ [Generator] Carregando v7...');
 
 class GuildCardGenerator {
     constructor() {
-        this.VERSION = 'v6';
+        this.VERSION = 'v7';
         this.currentTheme = 'dark';
         this.userData = null;
         this.payload = null;
+        this.dataYamlContent = '';
         this.workflowContent = '';
         this.token = '';
         this.rateLimit = null;
         this.T = window.GuildCardTemplates;
-        if (!this.T) {
-            console.error('❌ [GuildenKain] GuildCardTemplates NÃO carregou! Verifique a ordem dos <script> no HTML.');
-        } else {
-            console.log('✅ [GuildenKain] Templates carregados');
-        }
+        if (!this.T) console.error('❌ Templates não carregou!');
+        else console.log('✅ Templates ok');
         this.init();
     }
 
@@ -34,10 +30,9 @@ class GuildCardGenerator {
         this.loadAnnouncements();
         this.loadRanks();
         this.loadGuildStats();
-        console.log(`✅ [GuildenKain] Generator ${this.VERSION} pronto`);
+        console.log(`✅ Generator ${this.VERSION} pronto`);
     }
 
-    /* ---------- TOKEN ---------- */
     loadToken() {
         try { this.token = localStorage.getItem('gk_github_token') || ''; }
         catch (_) { this.token = ''; }
@@ -74,29 +69,26 @@ class GuildCardGenerator {
         });
     }
 
-    /* ---------- EVENTOS ---------- */
     setupEventListeners() {
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.switchTab(e.currentTarget.dataset.tab));
         });
 
         const handlers = {
-            generateCard:   () => this.generateGuildCard(),
-            downloadSvg:    () => this.downloadSvg(),
-            copySvg:        () => this.copySvg(),
-            downloadYaml:   () => this.downloadYaml(),
-            copyYaml:       () => this.copyYaml(),
-            downloadBundle: () => this.downloadBundle()
+            generateCard:     () => this.generateGuildCard(),
+            downloadSvg:      () => this.downloadSvg(),
+            copySvg:          () => this.copySvg(),
+            downloadDataYaml: () => this.downloadDataYaml(),
+            copyDataYaml:     () => this.copyDataYaml(),
+            downloadYaml:     () => this.downloadYaml(),
+            copyYaml:         () => this.copyYaml(),
+            downloadBundle:   () => this.downloadBundle()
         };
 
         Object.entries(handlers).forEach(([id, fn]) => {
             const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('click', fn);
-                console.log(`   ✓ bind: #${id}`);
-            } else {
-                console.warn(`   ✗ não encontrado: #${id}`);
-            }
+            if (el) { el.addEventListener('click', fn); console.log(`   ✓ #${id}`); }
+            else console.warn(`   ✗ #${id} não existe`);
         });
 
         const u = document.getElementById('githubUsername');
@@ -124,7 +116,6 @@ class GuildCardGenerator {
         if (t !== 'dark') document.body.classList.add(`theme-${t}`);
     }
 
-    /* ---------- API ---------- */
     async checkAPIStatus() {
         const el = document.getElementById('apiStatus');
         if (!el) return false;
@@ -153,7 +144,6 @@ class GuildCardGenerator {
         }
     }
 
-    /* ---------- FETCH ---------- */
     async fetchGitHubData(username) {
         const h = { 'Accept': 'application/vnd.github+json' };
         if (this.token) h['Authorization'] = `Bearer ${this.token}`;
@@ -190,7 +180,6 @@ class GuildCardGenerator {
         return result;
     }
 
-    /* ---------- CLASS ---------- */
     detectClass(repos) {
         const groups = {
             frontend: ['JavaScript','TypeScript','HTML','CSS','Vue','Svelte','SCSS','Less','Astro'],
@@ -227,7 +216,6 @@ class GuildCardGenerator {
         return { key, ...map[key], langTotals };
     }
 
-    /* ---------- STATS ---------- */
     calculateStats(u) {
         const age = (Date.now() - new Date(u.created_at)) / (365.25 * 24 * 3600 * 1000);
         const totalXP = (u.total_stars || 0) * 15 + (u.total_forks || 0) * 8 +
@@ -276,7 +264,6 @@ class GuildCardGenerator {
         ];
     }
 
-    /* ---------- MAIN ---------- */
     async generateGuildCard() {
         const input = document.getElementById('githubUsername');
         const username = (input?.value || '').trim();
@@ -310,19 +297,22 @@ class GuildCardGenerator {
             this.generateCardContent(this.payload);
             this.renderAchievements(ach);
 
-            // Gera o workflow apenas se templates existir
-            if (this.T && this.T.workflowYAML) {
+            if (this.T) {
+                this.dataYamlContent = this.T.dataYAML(this.payload);
                 this.workflowContent = this.T.workflowYAML(username);
             } else {
-                this.workflowContent = '# Erro: templates não carregaram. Verifique guild-card-templates.js';
+                this.dataYamlContent = '# Erro: templates não carregou';
+                this.workflowContent = '# Erro: templates não carregou';
             }
+
+            const dyp = document.getElementById('dataYamlPreview');
+            if (dyp) dyp.textContent = this.dataYamlContent;
             const yp = document.getElementById('yamlPreview');
             if (yp) yp.textContent = this.workflowContent;
 
-            // ⬇ HABILITA TODOS OS BOTÕES .action-btn DE UMA VEZ
             this.enableAllActionButtons();
 
-            ['achievementsSection','yamlSection']
+            ['achievementsSection','dataYamlSection','yamlSection']
                 .forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
 
             this.showNotification('Caçador invocado!', 'success');
@@ -335,18 +325,12 @@ class GuildCardGenerator {
         }
     }
 
-    /* ⬇ NOVO: habilita TODOS os botões com classe .action-btn */
     enableAllActionButtons() {
         const btns = document.querySelectorAll('.action-btn');
-        console.log(`⚔ [GuildenKain] Habilitando ${btns.length} botões .action-btn`);
-        btns.forEach(el => {
-            el.disabled = false;
-            el.removeAttribute('disabled');
-            console.log(`   ✓ habilitado: #${el.id}`);
-        });
+        console.log(`⚔ Habilitando ${btns.length} botões`);
+        btns.forEach(el => { el.disabled = false; el.removeAttribute('disabled'); });
     }
 
-    /* ---------- PREVIEW ---------- */
     generateCardContent(payload) {
         const { user, cls, stats, rank, langTop, topRepos } = payload;
         const card = document.getElementById('guildCard');
@@ -395,7 +379,6 @@ class GuildCardGenerator {
             </div>`).join('');
     }
 
-    /* ---------- AÇÕES ---------- */
     downloadSvg() {
         if (!this.payload || !this.T) return;
         this._saveFile(`guild-card-${this.userData.login}.svg`, this.T.svg(this.payload), 'image/svg+xml');
@@ -408,10 +391,22 @@ class GuildCardGenerator {
         catch (_) { this.showNotification('Erro ao copiar SVG', 'error'); }
     }
 
+    downloadDataYaml() {
+        if (!this.dataYamlContent) { this.showNotification('Gere o cartão primeiro!', 'error'); return; }
+        this._saveFile('guild-card.yml', this.dataYamlContent, 'text/yaml');
+        this.showNotification('guild-card.yml baixado!', 'success');
+    }
+
+    async copyDataYaml() {
+        if (!this.dataYamlContent) { this.showNotification('Gere o cartão primeiro!', 'error'); return; }
+        try { await navigator.clipboard.writeText(this.dataYamlContent); this.showNotification('Data YAML copiado!', 'success'); }
+        catch (_) { this.showNotification('Erro ao copiar Data YAML', 'error'); }
+    }
+
     downloadYaml() {
         if (!this.workflowContent) { this.showNotification('Gere o cartão primeiro!', 'error'); return; }
-        this._saveFile('guild-card.yml', this.workflowContent, 'text/yaml');
-        this.showNotification('Workflow baixado! Coloque em .github/workflows/', 'success');
+        this._saveFile('guild-card-workflow.yml', this.workflowContent, 'text/yaml');
+        this.showNotification('Workflow baixado! Renomeie para guild-card.yml e coloque em .github/workflows/', 'success');
     }
 
     async copyYaml() {
@@ -424,28 +419,39 @@ class GuildCardGenerator {
         if (!this.payload || !this.T) return;
         const files = [
             { name: `guild-card-${this.userData.login}.svg`, content: this.T.svg(this.payload), mime: 'image/svg+xml' },
-            { name: 'guild-card.yml', content: this.workflowContent, mime: 'text/yaml' },
+            { name: 'guild-card.yml', content: this.dataYamlContent, mime: 'text/yaml' },
+            { name: 'guild-card-workflow.yml', content: this.workflowContent, mime: 'text/yaml' },
             { name: 'INSTRUCOES.txt', content: this._instructions(), mime: 'text/plain' }
         ];
         files.forEach((f, i) => setTimeout(() => this._saveFile(f.name, f.content, f.mime), i * 250));
-        this.showNotification('Baixando tudo... ⚔', 'success');
+        this.showNotification('Baixando 4 arquivos... ⚔', 'success');
     }
 
     _instructions() {
-        return `═══════════════════════════════════════════════════════
-  ⚔ GuildenKain — Instruções
-═══════════════════════════════════════════════════════
+        return `=======================================================
+  GuildenKain - Instrucoes
+=======================================================
 
-1) No seu repo GitHub, crie: .github/workflows/
-2) Coloque "guild-card.yml" dentro.
-3) Commit na branch main.
-4) Actions → Update Guild Card → Run workflow.
-5) Aguarde ~15s. guild-card.svg será commitado.
+VOCE BAIXOU 4 ARQUIVOS:
 
-No README:
-  ![Guild Card](./guild-card.svg)
+1) guild-card-SEUNOME.svg       -> cartao pronto pro README
+2) guild-card.yml               -> dados do cartao (bonito)
+3) guild-card-workflow.yml      -> workflow da GitHub Action
+4) INSTRUCOES.txt               -> este arquivo
 
-═══════════════════════════════════════════════════════
+COMO USAR O CARTAO NO README:
+
+   ![Guild Card](./guild-card.svg)
+
+COMO ATIVAR A ATUALIZACAO AUTOMATICA:
+
+1) No seu repo, crie a pasta: .github/workflows/
+2) Renomeie "guild-card-workflow.yml" para "guild-card.yml"
+3) Coloque dentro de .github/workflows/
+4) Commit na branch main
+5) Va em Actions -> Update Guild Card -> Run workflow
+
+=======================================================
 `;
     }
 
@@ -458,7 +464,6 @@ No README:
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    /* ---------- UI ---------- */
     switchTab(tabId) {
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === tabId));
@@ -476,9 +481,9 @@ No README:
     loadAnnouncements() {
         const c = document.getElementById('announcements'); if (!c) return;
         const items = [
-            { title: '🚀 Workflow Auto-Contido', content: 'Baixe 1 arquivo e jogue no GitHub.', date: '2024-01-25', type: 'update' },
+            { title: '🚀 v7 — Data YAML separado', content: 'Agora você baixa o guild-card.yml (bonito) e o workflow separados.', date: '2024-01-25', type: 'update' },
             { title: '⭐ Destaques', content: 'Top 3 repos no cartão.', date: '2024-01-20', type: 'feature' },
-            { title: '🖼️ Avatar Embutido', content: 'Avatar vira base64 — funciona no README.', date: '2024-01-15', type: 'update' }
+            { title: '🖼️ Avatar Embutido', content: 'Avatar vira base64 na Action — funciona no README.', date: '2024-01-15', type: 'update' }
         ];
         c.innerHTML = items.map(a => `<div class="announcement-item"><h4>${a.title}</h4><p>${a.content}</p><small>${a.date} • ${a.type}</small></div>`).join('');
     }
