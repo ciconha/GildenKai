@@ -1,19 +1,27 @@
 /* =========================================================
-   ⚔ GuildenKain — Main Generator (lightweight)
-   Usa window.GuildCardTemplates para YAML/SVG
+   ⚔ GuildenKain — Main Generator v6
+   - Habilita TODOS os .action-btn de uma vez
+   - Bind por classe, não por ID fixo
+   - Log de versão pra debug
    ========================================================= */
+
+console.log('⚔ [GuildenKain] Carregando generator v6...');
 
 class GuildCardGenerator {
     constructor() {
+        this.VERSION = 'v6';
         this.currentTheme = 'dark';
         this.userData = null;
         this.payload = null;
-        this.dataYamlContent = '';
-        this.workflowYamlContent = '';
-        this.nodeScriptContent = '';
+        this.workflowContent = '';
         this.token = '';
         this.rateLimit = null;
         this.T = window.GuildCardTemplates;
+        if (!this.T) {
+            console.error('❌ [GuildenKain] GuildCardTemplates NÃO carregou! Verifique a ordem dos <script> no HTML.');
+        } else {
+            console.log('✅ [GuildenKain] Templates carregados');
+        }
         this.init();
     }
 
@@ -26,6 +34,7 @@ class GuildCardGenerator {
         this.loadAnnouncements();
         this.loadRanks();
         this.loadGuildStats();
+        console.log(`✅ [GuildenKain] Generator ${this.VERSION} pronto`);
     }
 
     /* ---------- TOKEN ---------- */
@@ -34,8 +43,8 @@ class GuildCardGenerator {
         catch (_) { this.token = ''; }
     }
 
-    saveToken(token) {
-        this.token = (token || '').trim();
+    saveToken(t) {
+        this.token = (t || '').trim();
         try {
             if (this.token) localStorage.setItem('gk_github_token', this.token);
             else localStorage.removeItem('gk_github_token');
@@ -43,21 +52,18 @@ class GuildCardGenerator {
     }
 
     setupTokenUI() {
-        const existing = document.getElementById('ghToken');
-        if (existing) {
-            existing.value = this.token;
-            existing.addEventListener('change', (e) => {
-                this.saveToken(e.target.value);
-                this.checkAPIStatus();
-            });
+        const ex = document.getElementById('ghToken');
+        if (ex) {
+            ex.value = this.token;
+            ex.addEventListener('change', (e) => { this.saveToken(e.target.value); this.checkAPIStatus(); });
             return;
         }
         const anchor = document.getElementById('githubUsername');
-        if (!anchor) return;
+        if (!anchor || !anchor.parentNode) return;
         const wrap = document.createElement('div');
         wrap.style.cssText = 'margin:8px 0;display:flex;gap:8px;align-items:center';
         wrap.innerHTML = `
-            <input id="ghToken" type="password" placeholder="GitHub Token (opcional)"
+            <input id="ghToken" type="password" placeholder="Token GitHub (opcional)"
                    value="${this.token}" style="flex:1;padding:8px;border-radius:6px;border:1px solid #b91c1c;background:#0d0505;color:#e5e5e5">
             <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=GuildenKain" target="_blank"
                style="font-size:11px;color:#fca5a5">gerar token</a>`;
@@ -73,17 +79,28 @@ class GuildCardGenerator {
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.switchTab(e.currentTarget.dataset.tab));
         });
-        const genBtn = document.getElementById('generateCard');
-        if (genBtn) genBtn.addEventListener('click', () => this.generateGuildCard());
-        const userInput = document.getElementById('githubUsername');
-        if (userInput) userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.generateGuildCard(); });
 
-        const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
-        bind('downloadSvg',      () => this.downloadSvg());
-        bind('copySvg',          () => this.copySvg());
-        bind('copyDataYaml',     () => this.copyDataYaml());
-        bind('copyWorkflowYaml', () => this.copyWorkflowYaml());
-        bind('downloadBundle',   () => this.downloadBundle());
+        const handlers = {
+            generateCard:   () => this.generateGuildCard(),
+            downloadSvg:    () => this.downloadSvg(),
+            copySvg:        () => this.copySvg(),
+            downloadYaml:   () => this.downloadYaml(),
+            copyYaml:       () => this.copyYaml(),
+            downloadBundle: () => this.downloadBundle()
+        };
+
+        Object.entries(handlers).forEach(([id, fn]) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('click', fn);
+                console.log(`   ✓ bind: #${id}`);
+            } else {
+                console.warn(`   ✗ não encontrado: #${id}`);
+            }
+        });
+
+        const u = document.getElementById('githubUsername');
+        if (u) u.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.generateGuildCard(); });
     }
 
     setupThemeButtons() {
@@ -101,10 +118,10 @@ class GuildCardGenerator {
         });
     }
 
-    setTheme(theme) {
-        this.currentTheme = theme;
+    setTheme(t) {
+        this.currentTheme = t;
         document.body.classList.remove('theme-dark', 'theme-abyss', 'theme-crimson', 'theme-monarch');
-        if (theme !== 'dark') document.body.classList.add(`theme-${theme}`);
+        if (t !== 'dark') document.body.classList.add(`theme-${t}`);
     }
 
     /* ---------- API ---------- */
@@ -114,13 +131,13 @@ class GuildCardGenerator {
         el.innerHTML = '<i class="fas fa-circle"></i> Verificando...';
         el.className = '';
         try {
-            const headers = { 'Accept': 'application/vnd.github+json' };
-            if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
-            const res = await fetch('https://api.github.com/rate_limit', { headers });
-            if (!res.ok) throw new Error('http');
-            const data = await res.json();
-            const core = data.resources?.core || {};
-            this.rateLimit = { remaining: core.remaining ?? 0, limit: core.limit ?? 60, reset: core.reset };
+            const h = { 'Accept': 'application/vnd.github+json' };
+            if (this.token) h['Authorization'] = `Bearer ${this.token}`;
+            const r = await fetch('https://api.github.com/rate_limit', { headers: h });
+            if (!r.ok) throw 0;
+            const d = await r.json();
+            const core = d.resources?.core || {};
+            this.rateLimit = { remaining: core.remaining ?? 0, limit: core.limit ?? 60 };
             if (this.rateLimit.remaining <= 0) {
                 el.innerHTML = '<i class="fas fa-circle"></i> API: limite atingido';
                 el.className = 'status-offline';
@@ -138,48 +155,26 @@ class GuildCardGenerator {
 
     /* ---------- FETCH ---------- */
     async fetchGitHubData(username) {
-        const headers = { 'Accept': 'application/vnd.github+json' };
-        if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
-
+        const h = { 'Accept': 'application/vnd.github+json' };
+        if (this.token) h['Authorization'] = `Bearer ${this.token}`;
         const cacheKey = `gk_user_${username}`;
         try {
-            const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-            if (cached && Date.now() - cached.ts < 5 * 60 * 1000) return cached.data;
+            const c = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+            if (c && Date.now() - c.ts < 5 * 60 * 1000) return c.data;
         } catch (_) {}
 
-        const userRes = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers });
-        if (!userRes.ok) {
-            if (userRes.status === 404) throw new Error('Usuário não encontrado');
-            if (userRes.status === 403) throw new Error('Limite da API atingido. Adicione um token.');
-            throw new Error(`Erro ${userRes.status}`);
+        const ur = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers: h });
+        if (!ur.ok) {
+            if (ur.status === 404) throw new Error('Usuário não encontrado');
+            if (ur.status === 403) throw new Error('Limite da API. Adicione um token.');
+            throw new Error(`Erro ${ur.status}`);
         }
-        const user = await userRes.json();
-
+        const user = await ur.json();
         let repos = [];
         try {
-            const r = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`, { headers });
+            const r = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`, { headers: h });
             if (r.ok) repos = await r.json();
         } catch (_) {}
-
-        let events = [];
-        try {
-            const e = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`, { headers });
-            if (e.ok) events = await e.json();
-        } catch (_) {}
-
-        let contributions = [];
-        for (const url of [
-            `https://github-contributions-api.jogruber.de/v4/${username}?y=last`,
-            `https://github-contributions.vercel.app/api/v1/${username}`
-        ]) {
-            try {
-                const c = await fetch(url);
-                if (!c.ok) continue;
-                const d = await c.json();
-                if (Array.isArray(d?.contributions)) { contributions = d.contributions; break; }
-                if (Array.isArray(d)) { contributions = d.map(x => ({ count: x.count || 0 })); break; }
-            } catch (_) {}
-        }
 
         const stars = repos.reduce((a, r) => a + (r.stargazers_count || 0), 0);
         const forks = repos.reduce((a, r) => a + (r.forks_count || 0), 0);
@@ -187,16 +182,15 @@ class GuildCardGenerator {
             .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0)).slice(0, 3);
 
         const result = {
-            ...user, repos, topRepos, events, contributions,
+            ...user, repos, topRepos,
             total_stars: stars, total_forks: forks,
-            public_repos_count: user.public_repos || 0,
-            total_contributions: events.length
+            public_repos_count: user.public_repos || 0
         };
         try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: result })); } catch (_) {}
         return result;
     }
 
-    /* ---------- CLASS DETECTION ---------- */
+    /* ---------- CLASS ---------- */
     detectClass(repos) {
         const groups = {
             frontend: ['JavaScript','TypeScript','HTML','CSS','Vue','Svelte','SCSS','Less','Astro'],
@@ -211,9 +205,7 @@ class GuildCardGenerator {
         repos.forEach(r => {
             if (!r.language) return;
             langTotals[r.language] = (langTotals[r.language] || 0) + 1;
-            for (const [k, list] of Object.entries(groups)) {
-                if (list.includes(r.language)) counts[k]++;
-            }
+            for (const [k, l] of Object.entries(groups)) if (l.includes(r.language)) counts[k]++;
         });
         const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
         const active = sorted.filter(([, v]) => v > 0).length;
@@ -222,26 +214,25 @@ class GuildCardGenerator {
             if (counts.frontend > 0 && counts.backend > 0 && counts.frontend >= counts.backend * 0.6) key = 'fullstack';
             else key = sorted[0][0];
         } else if (active >= 1) key = sorted[0][0];
-
         const map = {
             frontend:  { name: 'FRONTEND WARRIOR',  icon: '⚔️', desc: 'Defensor da experiência do usuário' },
-            backend:   { name: 'BACKEND MAGE',       icon: '🔮', desc: 'Manipulador de algoritmos no servidor' },
-            fullstack: { name: 'FULLSTACK RANGER',   icon: '🏹', desc: 'Preciso em todas as camadas' },
-            mobile:    { name: 'MOBILE ASSASSIN',    icon: '🗡️', desc: 'Mestre dos dispositivos' },
-            data:      { name: 'DATA ALCHEMIST',     icon: '⚗️', desc: 'Transforma dados em ouro' },
-            devops:    { name: 'DEVOPS CLERIC',      icon: '⛪', desc: 'Curador dos pipelines' },
-            systems:   { name: 'SYSTEMS BERSERKER',  icon: '🛡️', desc: 'Força bruta de baixo nível' },
-            adventurer:{ name: 'CODE ADVENTURER',    icon: '✨', desc: 'Explorador de múltiplas stacks' }
+            backend:   { name: 'BACKEND MAGE',      icon: '🔮', desc: 'Manipulador de algoritmos no servidor' },
+            fullstack: { name: 'FULLSTACK RANGER',  icon: '🏹', desc: 'Preciso em todas as camadas' },
+            mobile:    { name: 'MOBILE ASSASSIN',   icon: '🗡️', desc: 'Mestre dos dispositivos' },
+            data:      { name: 'DATA ALCHEMIST',    icon: '⚗️', desc: 'Transforma dados em ouro' },
+            devops:    { name: 'DEVOPS CLERIC',     icon: '⛪', desc: 'Curador dos pipelines' },
+            systems:   { name: 'SYSTEMS BERSERKER', icon: '🛡️', desc: 'Força bruta de baixo nível' },
+            adventurer:{ name: 'CODE ADVENTURER',   icon: '✨', desc: 'Explorador de múltiplas stacks' }
         };
         return { key, ...map[key], langTotals };
     }
 
     /* ---------- STATS ---------- */
     calculateStats(u) {
-        const ageYears = (Date.now() - new Date(u.created_at)) / (365.25 * 24 * 3600 * 1000);
+        const age = (Date.now() - new Date(u.created_at)) / (365.25 * 24 * 3600 * 1000);
         const totalXP = (u.total_stars || 0) * 15 + (u.total_forks || 0) * 8 +
                         (u.public_repos_count || 0) * 30 + (u.followers || 0) * 6 +
-                        Math.floor(ageYears * 400);
+                        Math.floor(age * 400);
         const XP_PER_LEVEL = 2000;
         const level = Math.floor(totalXP / XP_PER_LEVEL) + 1;
         const xpCurrent = totalXP % XP_PER_LEVEL;
@@ -253,7 +244,7 @@ class GuildCardGenerator {
         };
     }
 
-    formatNumber(n) { return this.T.formatNumber(n); }
+    formatNumber(n) { return this.T ? this.T.formatNumber(n) : String(n); }
 
     calculateRank(xp) {
         if (xp >= 50000) return { rank: 'S', color: '#FFD700', name: 'MONARCH' };
@@ -267,7 +258,6 @@ class GuildCardGenerator {
     calculateAchievements(u, stats, cls) {
         const langs = Object.keys(cls.langTotals);
         const age = (Date.now() - new Date(u.created_at)) / (365.25 * 24 * 3600 * 1000);
-        const totalContribs = u.contributions ? u.contributions.reduce((a, d) => a + (d.count || 0), 0) : 0;
         return [
             { icon:'🩸', name:'FIRST BLOOD',       unlocked: stats.repos >= 1 },
             { icon:'📚', name:'KNOWLEDGE SEEKER',  unlocked: stats.repos >= 5 },
@@ -282,9 +272,7 @@ class GuildCardGenerator {
             { icon:'🔥', name:'VETERAN',           unlocked: age >= 5 },
             { icon:'🏛️', name:'ANCIENT ONE',       unlocked: age >= 10 },
             { icon:'🌐', name:'POLYGLOT',          unlocked: langs.length >= 4 },
-            { icon:'🗺️', name:'LINGUA MASTER',     unlocked: langs.length >= 8 },
-            { icon:'📅', name:'ACTIVE HUNTER',     unlocked: totalContribs >= 500 },
-            { icon:'⚙️', name:'GRINDER',           unlocked: totalContribs >= 2000 }
+            { icon:'🗺️', name:'LINGUA MASTER',     unlocked: langs.length >= 8 }
         ];
     }
 
@@ -322,19 +310,19 @@ class GuildCardGenerator {
             this.generateCardContent(this.payload);
             this.renderAchievements(ach);
 
-            // ⬇ USA O MÓDULO DE TEMPLATES
-            this.dataYamlContent     = this.T.dataYAML(this.payload);
-            this.workflowYamlContent = this.T.workflowYAML(username);
-            this.nodeScriptContent   = this.T.nodeScript();
+            // Gera o workflow apenas se templates existir
+            if (this.T && this.T.workflowYAML) {
+                this.workflowContent = this.T.workflowYAML(username);
+            } else {
+                this.workflowContent = '# Erro: templates não carregaram. Verifique guild-card-templates.js';
+            }
+            const yp = document.getElementById('yamlPreview');
+            if (yp) yp.textContent = this.workflowContent;
 
-            const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-            setTxt('dataYamlPreview', this.dataYamlContent);
-            setTxt('yamlPreview',     this.workflowYamlContent);
-            setTxt('scriptPreview',   this.nodeScriptContent);
+            // ⬇ HABILITA TODOS OS BOTÕES .action-btn DE UMA VEZ
+            this.enableAllActionButtons();
 
-            ['downloadSvg','copySvg','copyDataYaml','copyWorkflowYaml','downloadBundle']
-                .forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
-            ['achievementsSection','yamlSection','dataYamlSection','scriptSection']
+            ['achievementsSection','yamlSection']
                 .forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
 
             this.showNotification('Caçador invocado!', 'success');
@@ -347,16 +335,27 @@ class GuildCardGenerator {
         }
     }
 
+    /* ⬇ NOVO: habilita TODOS os botões com classe .action-btn */
+    enableAllActionButtons() {
+        const btns = document.querySelectorAll('.action-btn');
+        console.log(`⚔ [GuildenKain] Habilitando ${btns.length} botões .action-btn`);
+        btns.forEach(el => {
+            el.disabled = false;
+            el.removeAttribute('disabled');
+            console.log(`   ✓ habilitado: #${el.id}`);
+        });
+    }
+
     /* ---------- PREVIEW ---------- */
     generateCardContent(payload) {
         const { user, cls, stats, rank, langTop, topRepos } = payload;
         const card = document.getElementById('guildCard');
         if (!card) return;
         const mainLang = langTop[0] ? langTop[0][0] : 'N/A';
-        const topList = (topRepos || []).slice(0, 3);
+        const top = (topRepos || []).slice(0, 3);
         const today = new Date().toLocaleDateString('pt-BR');
-        const repoRows = topList.length
-            ? topList.map(r => `<div style="margin:4px 0;font-size:13px">• <strong>${r.name}</strong> — ⭐ ${r.stargazers_count || 0}</div>`).join('')
+        const rows = top.length
+            ? top.map(r => `<div style="margin:4px 0;font-size:13px">• <strong>${r.name}</strong> — ⭐ ${r.stargazers_count || 0}</div>`).join('')
             : `<div style="margin:4px 0;font-size:13px;opacity:0.5;font-style:italic">Nenhum repositório em destaque</div>`;
 
         card.innerHTML = `
@@ -378,10 +377,10 @@ class GuildCardGenerator {
                     <div style="height:100%;width:${stats.xpProgress}%;background:linear-gradient(90deg,#ef4444,#fca5a5);border-radius:4px"></div>
                 </div>
                 <div style="font-size:14px;font-weight:700;color:#fca5a5;margin-bottom:6px">⭐ Destaques:</div>
-                ${repoRows}
+                ${rows}
                 <div style="height:1px;background:rgba(185,28,28,0.3);margin:16px 0 12px"></div>
                 <div style="font-size:11px;color:#9ca3af;text-align:center">
-                    Gerado em ${today} • ${stats.repos} repos • ${stats.stars} ⭐ • ${stats.followers} followers
+                    Gerado em ${today} • ${stats.repos} repos • ${stats.stars} ⭐ • ${stats.followers} seguidores
                 </div>
             </div>`;
     }
@@ -396,41 +395,58 @@ class GuildCardGenerator {
             </div>`).join('');
     }
 
-    /* ---------- DOWNLOAD / COPY (usa módulo) ---------- */
+    /* ---------- AÇÕES ---------- */
     downloadSvg() {
-        if (!this.payload) return;
+        if (!this.payload || !this.T) return;
         this._saveFile(`guild-card-${this.userData.login}.svg`, this.T.svg(this.payload), 'image/svg+xml');
         this.showNotification('SVG baixado!', 'success');
     }
 
     async copySvg() {
-        if (!this.payload) return;
+        if (!this.payload || !this.T) return;
         try { await navigator.clipboard.writeText(this.T.svg(this.payload)); this.showNotification('SVG copiado!', 'success'); }
         catch (_) { this.showNotification('Erro ao copiar SVG', 'error'); }
     }
 
-    async copyDataYaml() {
-        if (!this.dataYamlContent) return;
-        try { await navigator.clipboard.writeText(this.dataYamlContent); this.showNotification('Data YAML copiado!', 'success'); }
-        catch (_) { this.showNotification('Erro ao copiar YAML', 'error'); }
+    downloadYaml() {
+        if (!this.workflowContent) { this.showNotification('Gere o cartão primeiro!', 'error'); return; }
+        this._saveFile('guild-card.yml', this.workflowContent, 'text/yaml');
+        this.showNotification('Workflow baixado! Coloque em .github/workflows/', 'success');
     }
 
-    async copyWorkflowYaml() {
-        if (!this.workflowYamlContent) return;
-        try { await navigator.clipboard.writeText(this.workflowYamlContent); this.showNotification('Workflow copiado!', 'success'); }
+    async copyYaml() {
+        if (!this.workflowContent) { this.showNotification('Gere o cartão primeiro!', 'error'); return; }
+        try { await navigator.clipboard.writeText(this.workflowContent); this.showNotification('Workflow copiado!', 'success'); }
         catch (_) { this.showNotification('Erro ao copiar Workflow', 'error'); }
     }
 
     downloadBundle() {
-        if (!this.payload) return;
+        if (!this.payload || !this.T) return;
         const files = [
             { name: `guild-card-${this.userData.login}.svg`, content: this.T.svg(this.payload), mime: 'image/svg+xml' },
-            { name: 'guild-card.yml',                        content: this.dataYamlContent,     mime: 'text/yaml' },
-            { name: '.github/workflows/guild-card.yml',      content: this.workflowYamlContent, mime: 'text/yaml' },
-            { name: '.github/scripts/guild-card.mjs',        content: this.nodeScriptContent,   mime: 'text/javascript' }
+            { name: 'guild-card.yml', content: this.workflowContent, mime: 'text/yaml' },
+            { name: 'INSTRUCOES.txt', content: this._instructions(), mime: 'text/plain' }
         ];
-        files.forEach((f, i) => setTimeout(() => this._saveFile(f.name.split('/').pop(), f.content, f.mime), i * 300));
-        this.showNotification('Baixando 4 arquivos... ⚔', 'success');
+        files.forEach((f, i) => setTimeout(() => this._saveFile(f.name, f.content, f.mime), i * 250));
+        this.showNotification('Baixando tudo... ⚔', 'success');
+    }
+
+    _instructions() {
+        return `═══════════════════════════════════════════════════════
+  ⚔ GuildenKain — Instruções
+═══════════════════════════════════════════════════════
+
+1) No seu repo GitHub, crie: .github/workflows/
+2) Coloque "guild-card.yml" dentro.
+3) Commit na branch main.
+4) Actions → Update Guild Card → Run workflow.
+5) Aguarde ~15s. guild-card.svg será commitado.
+
+No README:
+  ![Guild Card](./guild-card.svg)
+
+═══════════════════════════════════════════════════════
+`;
     }
 
     _saveFile(name, content, mime) {
@@ -439,7 +455,7 @@ class GuildCardGenerator {
         const a = document.createElement('a');
         a.href = url; a.download = name;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     /* ---------- UI ---------- */
@@ -454,16 +470,15 @@ class GuildCardGenerator {
         n.className = `notification notification-${type}`;
         n.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i><span>${msg}</span>`;
         document.body.appendChild(n);
-        setTimeout(() => { n.style.animation = 'slideOut 0.3s ease'; setTimeout(() => n.remove(), 300); }, 3000);
+        setTimeout(() => { n.style.animation = 'slideOut 0.3s ease'; setTimeout(() => n.remove(), 300); }, 4000);
     }
 
     loadAnnouncements() {
         const c = document.getElementById('announcements'); if (!c) return;
         const items = [
-            { title: '🎉 Arquitetura Modular', content: 'Templates separados em guild-card-templates.js.', date: '2024-01-25', type: 'update' },
-            { title: '▶️ Botão Run workflow', content: 'Agora você pode rodar a Action manualmente.', date: '2024-01-20', type: 'important' },
-            { title: '⭐ Destaques', content: 'Top 3 repos mais estrelados.', date: '2024-01-15', type: 'feature' },
-            { title: '🖼️ Cartão Minimalista', content: 'Layout retangular 560×340.', date: '2024-01-10', type: 'update' }
+            { title: '🚀 Workflow Auto-Contido', content: 'Baixe 1 arquivo e jogue no GitHub.', date: '2024-01-25', type: 'update' },
+            { title: '⭐ Destaques', content: 'Top 3 repos no cartão.', date: '2024-01-20', type: 'feature' },
+            { title: '🖼️ Avatar Embutido', content: 'Avatar vira base64 — funciona no README.', date: '2024-01-15', type: 'update' }
         ];
         c.innerHTML = items.map(a => `<div class="announcement-item"><h4>${a.title}</h4><p>${a.content}</p><small>${a.date} • ${a.type}</small></div>`).join('');
     }
