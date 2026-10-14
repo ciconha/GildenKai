@@ -58,7 +58,6 @@
                             <small>Exemplo: seuusername</small>
                         </div>
 
-                        <!-- Classe é detectada automaticamente -->
                         <div class="form-group">
                             <label>
                                 <i class="fas fa-shield-alt"></i> Classe Detectada
@@ -120,11 +119,14 @@
                             <button id="copySvg" class="action-btn" disabled>
                                 <i class="fas fa-code"></i> Copiar SVG
                             </button>
-                            <button id="copyYaml" class="action-btn" disabled>
-                                <i class="fas fa-file-code"></i> Copiar YAML
-                            </button>
                             <button id="downloadYaml" class="action-btn" disabled>
-                                <i class="fas fa-scroll"></i> Baixar Workflow
+                                <i class="fas fa-file-code"></i> Baixar Workflow
+                            </button>
+                            <button id="copyYaml" class="action-btn" disabled>
+                                <i class="fas fa-copy"></i> Copiar Workflow
+                            </button>
+                            <button id="downloadBundle" class="action-btn" disabled>
+                                <i class="fas fa-box"></i> Baixar Tudo
                             </button>
                         </div>
                     </div>
@@ -144,8 +146,10 @@
                         <i class="fas fa-file-code"></i> GitHub Action Workflow
                     </h2>
                     <p class="yaml-hint">
-                        Cole em <code>.github/workflows/guild-card.yml</code> no seu repositório. 
-                        O workflow regenera o cartão automaticamente.
+                        Clique em <strong>Baixar Workflow</strong>, coloque o arquivo em 
+                        <code>.github/workflows/guild-card.yml</code> no seu repositório, 
+                        faça commit, e o botão <strong>Run workflow</strong> aparecerá na aba 
+                        <strong>Actions</strong>.
                     </p>
                     <pre id="yamlPreview" class="yaml-preview"></pre>
                 </section>
@@ -199,8 +203,9 @@
                             <h3><i class="fas fa-door-open"></i> Como se Juntar</h3>
                             <ol>
                                 <li>Forje seu cartão de guilda usando seu nome do GitHub</li>
-                                <li>Contribua para projetos open-source</li>
-                                <li>Suba de rank através de commits e estrelas</li>
+                                <li>Baixe o arquivo de Workflow (guild-card.yml)</li>
+                                <li>Coloque em <code>.github/workflows/</code> no seu repo</li>
+                                <li>Vá em Actions → Run workflow</li>
                                 <li>Compartilhe seu cartão em seu perfil</li>
                             </ol>
                         </div>
@@ -233,9 +238,12 @@
         </footer>
     </div>
 
-    <script src="assets/js/card.js"></script>
-     <script src="assets/js/guild-card-templates.js"></script>
-      <script src="assets/js/guild-card-generator.js"></script>
-    
+    <!-- ====================================================
+         Scripts — ORDEM IMPORTA!
+         1) templates (precisa existir primeiro)
+         2) generator (usa o templates)
+         ==================================================== -->
+    <script src="assets/js/guild-card-templates.js"></script>
+    <script src="assets/js/guild-card-generator.js"></script>
 </body>
 </html>
