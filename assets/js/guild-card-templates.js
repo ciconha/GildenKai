@@ -1,14 +1,14 @@
 /* =========================================================
-   ⚔ GuildenKain — Templates Module v7
+   ⚔ GuildenKain — Templates Module v7.1
    - dataYAML (formato bonito)
    - workflowYAML (action auto-contida)
-   - svg (browser, avatar por URL)
+   - svg (browser, avatar em base64 OU fallback com iniciais)
    ========================================================= */
 
 window.GuildCardTemplates = (function () {
     'use strict';
 
-    console.log('⚔ [Templates] Carregando v7...');
+    console.log('⚔ [Templates] Carregando v7.1...');
 
     /* ---------- HELPERS ---------- */
     const q = (s) => `"${String(s ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
@@ -425,9 +425,11 @@ jobs:
 
     /* ===================================================
        SVG (browser) — preview e download
+       ⚡ Avatar embutido em base64 (payload.avatarDataUrl).
+       ⚡ Fallback: círculo com inicial se o avatar falhar.
        =================================================== */
     function svg(payload) {
-        const { user, cls, stats, rank, langTop, topRepos, theme } = payload;
+        const { user, cls, stats, rank, langTop, topRepos, theme, avatarDataUrl } = payload;
         const c = themeColors(theme);
         const W = 560, H = 340;
         const font = "'Segoe UI',system-ui,-apple-system,sans-serif";
@@ -436,6 +438,16 @@ jobs:
         const top = (topRepos || []).slice(0, 3);
         const today = new Date().toLocaleDateString('pt-BR');
         const avX = W - 66, avY = 66, avR = 36;
+
+        // 🖼️ Avatar: preferência base64 (autossuficiente), fallback URL, senão iniciais
+        const initial = ((user.name || user.login || '?').trim()[0] || '?').toUpperCase();
+        const hasData = !!(avatarDataUrl && avatarDataUrl.startsWith('data:'));
+        const avatarBlock = hasData
+            ? `<image xlink:href="${avatarDataUrl}" x="${avX - avR}" y="${avY - avR}" width="${avR * 2}" height="${avR * 2}"
+                    clip-path="url(#avClip)" preserveAspectRatio="xMidYMid slice"/>`
+            : `<circle cx="${avX}" cy="${avY}" r="${avR}" fill="${c.deep}"/>
+               <text x="${avX}" y="${avY + 12}" text-anchor="middle" font-family="${font}"
+                     font-size="32" font-weight="700" fill="${c.bright}">${escapeXml(initial)}</text>`;
 
         const repoLines = top.length
             ? top.map((r, i) =>
@@ -465,8 +477,7 @@ jobs:
   <text x="24" y="112" font-family="${font}" font-size="13" fill="${c.text}">
     ⚔️ ${escapeXml(cls.name)} • 🩸 Rank ${escapeXml(rank.rank)} — ${escapeXml(rank.name)}
   </text>
-  <image xlink:href="${escapeXml(user.avatar_url)}" x="${avX - avR}" y="${avY - avR}" width="${avR * 2}" height="${avR * 2}"
-         clip-path="url(#avClip)" preserveAspectRatio="xMidYMid slice"/>
+  ${avatarBlock}
   <circle cx="${avX}" cy="${avY}" r="${avR}" fill="none" stroke="${c.border}" stroke-width="2"/>
   <line x1="24" y1="138" x2="${W - 24}" y2="138" stroke="${c.border}" stroke-opacity="0.35"/>
   <text x="24" y="166" font-family="${font}" font-size="13" fill="${c.text}">
@@ -487,6 +498,6 @@ jobs:
     }
 
     /* ---------- EXPORT ---------- */
-    console.log('✅ [Templates] v7 pronto');
+    console.log('✅ [Templates] v7.1 pronto');
     return { dataYAML, workflowYAML, svg, themeColors, escapeXml, formatNumber, countryFlag, THEMES };
 })();
