@@ -1,13 +1,14 @@
 /* =========================================================
-   ⚔ GuildenKain — Generator v7
+   ⚔ GuildenKain — Generator v7.1
    Habilita TODOS os .action-btn via querySelectorAll
+   + Avatar em base64 (SVG autossuficiente)
    ========================================================= */
 
-console.log('⚔ [Generator] Carregando v7...');
+console.log('⚔ [Generator] Carregando v7.1...');
 
 class GuildCardGenerator {
     constructor() {
-        this.VERSION = 'v7';
+        this.VERSION = 'v7.1';
         this.currentTheme = 'dark';
         this.userData = null;
         this.payload = null;
@@ -180,6 +181,30 @@ class GuildCardGenerator {
         return result;
     }
 
+    /* =========================================================
+       🖼️ NOVO — Converte o avatar do GitHub em data URL (base64)
+       Assim o SVG baixado é AUTOSSUFICIENTE (funciona offline,
+       no README do GitHub e em qualquer visualizador de SVG).
+       ========================================================= */
+    async fetchAvatarBase64(url) {
+        if (!url) return null;
+        try {
+            // avatars.githubusercontent.com responde com CORS liberado
+            const res = await fetch(url, { mode: 'cors', cache: 'force-cache' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            return await new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onloadend = () => resolve(r.result); // "data:image/png;base64,..."
+                r.onerror = reject;
+                r.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.warn('⚠ Avatar base64 falhou:', e.message);
+            return null; // fallback: templates gera círculo com inicial
+        }
+    }
+
     detectClass(repos) {
         const groups = {
             frontend: ['JavaScript','TypeScript','HTML','CSS','Vue','Svelte','SCSS','Less','Astro'],
@@ -279,6 +304,12 @@ class GuildCardGenerator {
             if (!online) throw new Error('API indisponível. Adicione um token ou aguarde.');
 
             this.userData = await this.fetchGitHubData(username);
+
+            // 🖼️ Busca o avatar e converte para base64 (paralelo, rápido)
+            const avatarDataUrl = await this.fetchAvatarBase64(this.userData.avatar_url);
+            if (avatarDataUrl) console.log('✅ Avatar embutido em base64');
+            else console.warn('⚠ Avatar não embutido — usará fallback com iniciais');
+
             const cls = this.detectClass(this.userData.repos);
             const stats = this.calculateStats(this.userData);
             const rank = this.calculateRank(stats.totalXP);
@@ -288,7 +319,8 @@ class GuildCardGenerator {
             this.payload = {
                 user: this.userData, cls, stats, rank, ach, langTop,
                 topRepos: this.userData.topRepos || [],
-                theme: this.currentTheme
+                theme: this.currentTheme,
+                avatarDataUrl        // 👈 agora o SVG recebe o avatar embutido
             };
 
             const detected = document.getElementById('detectedClass');
@@ -482,8 +514,8 @@ COMO ATIVAR A ATUALIZACAO AUTOMATICA:
         const c = document.getElementById('announcements'); if (!c) return;
         const items = [
             { title: '🚀 v7 — Data YAML separado', content: 'Agora você baixa o guild-card.yml (bonito) e o workflow separados.', date: '2024-01-25', type: 'update' },
-            { title: '⭐ Destaques', content: 'Top 3 repos no cartão.', date: '2024-01-20', type: 'feature' },
-            { title: '🖼️ Avatar Embutido', content: 'Avatar vira base64 na Action — funciona no README.', date: '2024-01-15', type: 'update' }
+            { title: '🖼️ Avatar Embutido', content: 'O SVG agora embute o avatar em base64 — funciona no README e offline.', date: '2024-01-25', type: 'feature' },
+            { title: '⭐ Destaques', content: 'Top 3 repos no cartão.', date: '2024-01-20', type: 'feature' }
         ];
         c.innerHTML = items.map(a => `<div class="announcement-item"><h4>${a.title}</h4><p>${a.content}</p><small>${a.date} • ${a.type}</small></div>`).join('');
     }
