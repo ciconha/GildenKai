@@ -11,7 +11,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header da Guilda -->
         <header class="guild-header">
             <div class="header-content">
                 <div class="guild-logo">
@@ -22,145 +21,90 @@
                     <p>"Onde o código encontra a lenda"</p>
                 </div>
                 <nav class="guild-nav">
-                    <button class="nav-btn active" data-tab="card-generator">
-                        <i class="fas fa-id-card"></i> Criar Cartão
-                    </button>
-                    <button class="nav-btn" data-tab="guild-hall">
-                        <i class="fas fa-landmark"></i> Salão da Guilda
-                    </button>
-                    <button class="nav-btn" data-tab="ranks">
-                        <i class="fas fa-trophy"></i> Hierarquia
-                    </button>
-                    <button class="nav-btn" data-tab="about">
-                        <i class="fas fa-scroll"></i> Sobre
-                    </button>
+                    <button class="nav-btn active" data-tab="card-generator"><i class="fas fa-id-card"></i> Criar Cartão</button>
+                    <button class="nav-btn" data-tab="guild-hall"><i class="fas fa-landmark"></i> Salão da Guilda</button>
+                    <button class="nav-btn" data-tab="ranks"><i class="fas fa-trophy"></i> Hierarquia</button>
+                    <button class="nav-btn" data-tab="about"><i class="fas fa-scroll"></i> Sobre</button>
                 </nav>
             </div>
         </header>
 
-        <!-- Conteúdo Principal -->
         <main class="main-content">
-            <!-- Gerador de Cartão -->
             <section id="card-generator" class="tab-content active">
                 <div class="generator-container">
                     <div class="generator-form">
-                        <h2 class="section-title">
-                            <i class="fas fa-magic"></i> Forjar Cartão da Guilda
-                        </h2>
-                        
+                        <h2 class="section-title"><i class="fas fa-magic"></i> Forjar Cartão da Guilda</h2>
                         <div class="form-group">
-                            <label for="githubUsername">
-                                <i class="fab fa-github"></i> Nome do Aventureiro (GitHub)
-                            </label>
-                            <input type="text" id="githubUsername" 
-                                   placeholder="Digite seu username do GitHub" 
-                                   class="form-input" autocomplete="off">
+                            <label for="githubUsername"><i class="fab fa-github"></i> Nome do Aventureiro (GitHub)</label>
+                            <input type="text" id="githubUsername" placeholder="Digite seu username do GitHub" class="form-input" autocomplete="off">
                             <small>Exemplo: seuusername</small>
                         </div>
-
                         <div class="form-group">
-                            <label>
-                                <i class="fas fa-shield-alt"></i> Classe Detectada
-                            </label>
+                            <label><i class="fas fa-shield-alt"></i> Classe Detectada</label>
                             <div id="detectedClass" class="detected-class">
-                                <i class="fas fa-hourglass-half"></i>
-                                <span>Aguardando invocação...</span>
+                                <i class="fas fa-hourglass-half"></i><span>Aguardando invocação...</span>
                             </div>
-                            <small>O sistema analisa seus repositórios e detecta automaticamente.</small>
                         </div>
-
                         <div class="form-group">
-                            <label>
-                                <i class="fas fa-palette"></i> Tema do Cartão
-                            </label>
+                            <label><i class="fas fa-palette"></i> Tema do Cartão</label>
                             <div class="theme-selector">
-                                <button class="theme-btn" data-theme="dark" data-active="true">
-                                    <span class="theme-preview dark"></span>
-                                    Shadow
-                                </button>
-                                <button class="theme-btn" data-theme="abyss">
-                                    <span class="theme-preview abyss"></span>
-                                    Abismo
-                                </button>
-                                <button class="theme-btn" data-theme="crimson">
-                                    <span class="theme-preview crimson"></span>
-                                    Carmesim
-                                </button>
-                                <button class="theme-btn" data-theme="monarch">
-                                    <span class="theme-preview monarch"></span>
-                                    Monarca
-                                </button>
+                                <button class="theme-btn" data-theme="dark" data-active="true"><span class="theme-preview dark"></span>Shadow</button>
+                                <button class="theme-btn" data-theme="abyss"><span class="theme-preview abyss"></span>Abismo</button>
+                                <button class="theme-btn" data-theme="crimson"><span class="theme-preview crimson"></span>Carmesim</button>
+                                <button class="theme-btn" data-theme="monarch"><span class="theme-preview monarch"></span>Monarca</button>
                             </div>
                         </div>
-
-                        <button id="generateCard" class="generate-btn">
-                            <i class="fas fa-hammer"></i> Forjar Cartão
-                        </button>
-
+                        <button id="generateCard" class="generate-btn"><i class="fas fa-hammer"></i> Forjar Cartão</button>
                         <div class="api-status">
-                            <span id="apiStatus" class="status-offline">
-                                <i class="fas fa-circle"></i> GitHub API: Offline
-                            </span>
+                            <span id="apiStatus" class="status-offline"><i class="fas fa-circle"></i> GitHub API: Offline</span>
                         </div>
                     </div>
 
                     <div class="card-preview">
                         <div class="guild-card" id="guildCard">
-                            <div class="card-loading">
-                                <i class="fas fa-dragon"></i>
-                                <p>O cartão será forjado aqui...</p>
-                            </div>
+                            <div class="card-loading"><i class="fas fa-dragon"></i><p>O cartão será forjado aqui...</p></div>
                         </div>
-                        
-                        <div class="card-actions">
-                            <button id="downloadSvg" class="action-btn" disabled>
-                                <i class="fas fa-download"></i> Baixar SVG
-                            </button>
-                            <button id="copySvg" class="action-btn" disabled>
-                                <i class="fas fa-code"></i> Copiar SVG
-                            </button>
-                            <button id="downloadYaml" class="action-btn" disabled>
-                                <i class="fas fa-file-code"></i> Baixar Workflow
-                            </button>
-                            <button id="copyYaml" class="action-btn" disabled>
-                                <i class="fas fa-copy"></i> Copiar Workflow
-                            </button>
-                            <button id="downloadBundle" class="action-btn" disabled>
-                                <i class="fas fa-box"></i> Baixar Tudo
-                            </button>
+                        <div class="card-actions" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 15px;">
+                            <button id="downloadSvg" class="action-btn" disabled><i class="fas fa-download"></i> Baixar SVG</button>
+                            <button id="copySvg" class="action-btn" disabled><i class="fas fa-code"></i> Copiar SVG</button>
+                            <button id="downloadDataYaml" class="action-btn" disabled><i class="fas fa-database"></i> Baixar Dados (YML)</button>
+                            <button id="copyDataYaml" class="action-btn" disabled><i class="fas fa-copy"></i> Copiar Dados (YML)</button>
+                            <button id="downloadYaml" class="action-btn" disabled><i class="fas fa-file-code"></i> Baixar Workflow</button>
+                            <button id="copyYaml" class="action-btn" disabled><i class="fas fa-copy"></i> Copiar Workflow</button>
+                            <button id="downloadScript" class="action-btn" disabled><i class="fas fa-file-code"></i> Baixar Script .mjs</button>
+                            <button id="copyScript" class="action-btn" disabled><i class="fas fa-copy"></i> Copiar Script .mjs</button>
+                            <button id="downloadBundle" class="action-btn" disabled style="background: linear-gradient(135deg, #b91c1c, #7f1d1d); color: white; border: 1px solid #ef4444;"><i class="fas fa-box"></i> Baixar Tudo</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Conquistas Detalhadas -->
                 <section id="achievementsSection" class="achievements-section hidden">
-                    <h2 class="section-title">
-                        <i class="fas fa-trophy"></i> Conquistas Desbloqueadas
-                    </h2>
+                    <h2 class="section-title"><i class="fas fa-trophy"></i> Conquistas Desbloqueadas</h2>
                     <div id="achievementsGrid" class="achievements-grid"></div>
                 </section>
 
-                <!-- YAML Preview -->
+                <section id="dataYamlSection" class="yaml-section hidden">
+                    <h2 class="section-title"><i class="fas fa-database"></i> Dados do Cartão (guild-card.yml)</h2>
+                    <p class="yaml-hint">Este arquivo contém os dados do seu cartão. O robô vai atualizá-lo automaticamente. Coloque-o na raiz do repositório.</p>
+                    <pre id="dataYamlPreview" class="yaml-preview"></pre>
+                </section>
+
                 <section id="yamlSection" class="yaml-section hidden">
-                    <h2 class="section-title">
-                        <i class="fas fa-file-code"></i> GitHub Action Workflow
-                    </h2>
-                    <p class="yaml-hint">
-                        Clique em <strong>Baixar Workflow</strong>, coloque o arquivo em 
-                        <code>.github/workflows/guild-card.yml</code> no seu repositório, 
-                        faça commit, e o botão <strong>Run workflow</strong> aparecerá na aba 
-                        <strong>Actions</strong>.
-                    </p>
+                    <h2 class="section-title"><i class="fas fa-file-code"></i> GitHub Action Workflow</h2>
+                    <p class="yaml-hint">Salve em <code>.github/workflows/guild-card.yml</code>. Ele é curto e só chama o script.</p>
                     <pre id="yamlPreview" class="yaml-preview"></pre>
+                </section>
+
+                <section id="scriptSection" class="yaml-section hidden">
+                    <h2 class="section-title"><i class="fab fa-node-js"></i> Script Node (scripts/guild-card.mjs)</h2>
+                    <p class="yaml-hint">Salve em <code>scripts/guild-card.mjs</code>. É ele quem gera o SVG e o YML.</p>
+                    <pre id="scriptPreview" class="yaml-preview" style="max-height: 500px; overflow-y: auto;"></pre>
                 </section>
             </section>
 
-            <!-- Salão da Guilda -->
             <section id="guild-hall" class="tab-content">
                 <div class="guild-hall-container">
-                    <h2 class="section-title">
-                        <i class="fas fa-landmark"></i> Salão da Guilda
-                    </h2>
+                    <h2 class="section-title"><i class="fas fa-landmark"></i> Salão da Guilda</h2>
                     <div class="hall-content">
                         <div class="announcements">
                             <h3><i class="fas fa-bullhorn"></i> Anúncios da Guilda</h3>
@@ -174,12 +118,9 @@
                 </div>
             </section>
 
-            <!-- Hierarquia -->
             <section id="ranks" class="tab-content">
                 <div class="ranks-container">
-                    <h2 class="section-title">
-                        <i class="fas fa-trophy"></i> Hierarquia da Guilda
-                    </h2>
+                    <h2 class="section-title"><i class="fas fa-trophy"></i> Hierarquia da Guilda</h2>
                     <div class="ranks-explanation">
                         <p>A hierarquia é determinada pelas contribuições ao mundo do código:</p>
                         <div class="ranks-list" id="ranksList"></div>
@@ -187,26 +128,22 @@
                 </div>
             </section>
 
-            <!-- Sobre -->
             <section id="about" class="tab-content">
                 <div class="about-container">
-                    <h2 class="section-title">
-                        <i class="fas fa-scroll"></i> Sobre a GitHub Guild
-                    </h2>
+                    <h2 class="section-title"><i class="fas fa-scroll"></i> Sobre a GitHub Guild</h2>
                     <div class="about-content">
                         <div class="guild-lore">
                             <h3><i class="fas fa-book"></i> A Lenda</h3>
-                            <p>Num reino distante de bits e bytes, a GitHub Guild reúne os mais habilidosos artífices do código. Cada membro é reconhecido por suas contribuições ao mundo digital.</p>
-                            <p>O Gildenkai é o órgão regulador que concede autorizações de desenvolvimento de software aos membros qualificados.</p>
+                            <p>Num reino distante de bits e bytes, a GitHub Guild reúne os mais habilidosos artífices do código.</p>
                         </div>
                         <div class="how-to-join">
                             <h3><i class="fas fa-door-open"></i> Como se Juntar</h3>
                             <ol>
                                 <li>Forje seu cartão de guilda usando seu nome do GitHub</li>
-                                <li>Baixe o arquivo de Workflow (guild-card.yml)</li>
-                                <li>Coloque em <code>.github/workflows/</code> no seu repo</li>
-                                <li>Vá em Actions → Run workflow</li>
-                                <li>Compartilhe seu cartão em seu perfil</li>
+                                <li>Baixe o arquivo de Workflow e o Script Node</li>
+                                <li>Coloque o Script em <code>scripts/guild-card.mjs</code></li>
+                                <li>Coloque o Workflow em <code>.github/workflows/</code></li>
+                                <li>Vá em Actions → Run workflow e compartilhe seu cartão!</li>
                             </ol>
                         </div>
                     </div>
@@ -214,35 +151,21 @@
             </section>
         </main>
 
-        <!-- Footer -->
         <footer class="guild-footer">
             <div class="footer-content">
                 <div class="footer-info">
-                    <p>
-                        <i class="fas fa-dragon"></i> GitHub Guild - Gildenkai Authorization System
-                    </p>
+                    <p><i class="fas fa-dragon"></i> GitHub Guild - Gildenkai Authorization System</p>
                     <p>© 2024 Todos os direitos protegidos pelo Código do Desenvolvedor</p>
                 </div>
                 <div class="footer-links">
-                    <a href="#" class="footer-link">
-                        <i class="fab fa-github"></i> Repositório
-                    </a>
-                    <a href="#" class="footer-link">
-                        <i class="fas fa-scroll"></i> Documentação
-                    </a>
-                    <a href="#" class="footer-link">
-                        <i class="fas fa-users"></i> Comunidade
-                    </a>
+                    <a href="#" class="footer-link"><i class="fab fa-github"></i> Repositório</a>
+                    <a href="#" class="footer-link"><i class="fas fa-scroll"></i> Documentação</a>
+                    <a href="#" class="footer-link"><i class="fas fa-users"></i> Comunidade</a>
                 </div>
             </div>
         </footer>
     </div>
 
-    <!-- ====================================================
-         Scripts — ORDEM IMPORTA!
-         1) templates (precisa existir primeiro)
-         2) generator (usa o templates)
-         ==================================================== -->
     <script src="assets/js/guild-card-templates.js"></script>
     <script src="assets/js/guild-card-generator.js"></script>
 </body>
