@@ -1,15 +1,11 @@
 /* =========================================================
-   ⚔ GuildenKain — Templates Module v10.1
-   - dataYAML (guild-card.yml)
-   - workflowYAML (workflow limpo que chama scripts/guild-card.mjs)
-   - scriptNode (conteúdo do scripts/guild-card.mjs)
-   - svg (preview do cartão)
+   ⚔ GuildenKain — Templates Module v10.2 (Safe Math)
    ========================================================= */
 
-   window.GuildCardTemplates = (function () {
+window.GuildCardTemplates = (function () {
     'use strict';
 
-    console.log('⚔ [Templates] Carregando v10.1...');
+    console.log('⚔ [Templates] Carregando v10.2...');
 
     const q = (s) => `"${String(s ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 
@@ -47,8 +43,6 @@
         const flag = countryFlag(user.location);
         const mainLang = langTop[0] ? langTop[0][0] : 'Code';
         const today = new Date().toLocaleDateString('pt-BR');
-        const startedAt = new Date(user.created_at).toISOString().split('T')[0];
-        const startedFmt = new Date(user.created_at).toLocaleDateString('pt-BR');
 
         const lines = [];
         const push = (i, s) => lines.push(' '.repeat(i) + s);
@@ -94,7 +88,7 @@
         return lines.join('\n') + '\n';
     }
 
-    /* ============ WORKFLOW YAML — .github/workflows/guild-card.yml ============ */
+    /* ============ WORKFLOW YAML ============ */
     function workflowYAML(username) {
         return `name: Update Guild Card
 
@@ -215,25 +209,29 @@ jobs:
             "  };",
             "  const cls = { key, ...classMap[key], langTotals };",
             "",
-            "  // Calcular Stats",
-            "  const age = (Date.now() - new Date(user.created_at)) / (365.25 * 24 * 3600 * 1000);",
-            "  const totalXP = stars * 15 + forks * 8 + (user.public_repos || 0) * 30 + (user.followers || 0) * 6 + Math.floor(age * 400);",
-            "  const XP_PER_LEVEL = 2000;",
-            "  const level = Math.floor(totalXP / XP_PER_LEVEL) + 1;",
-            "  const xpCurrent = totalXP % XP_PER_LEVEL;",
+            "  // SAFE MATH: Calcular Stats",
+            "  const created = new Date(user.created_at).getTime();",
+            "  const now = Date.now();",
+            "  const age = isNaN(created) ? 0 : (now - created) / (365.25 * 24 * 3600 * 1000);",
+            "  const totalXP = (stars || 0) * 15 + (forks || 0) * 8 + (user.public_repos || 0) * 30 + (user.followers || 0) * 6 + Math.floor((age || 0) * 400);",
+            "  const safeTotalXP = isNaN(totalXP) ? 0 : totalXP;",
+            "  const safeLevel = Math.floor(safeTotalXP / 2000) + 1;",
+            "  const safeXpCurrent = safeTotalXP % 2000;",
+            "  const safeXpProgress = isNaN(safeXpCurrent) ? 0 : Math.min((safeXpCurrent / 2000) * 100, 100);",
+            "",
             "  const stats = {",
-            "    stars, forks, repos: user.public_repos || 0, followers: user.followers || 0,",
-            "    totalXP, level, xpCurrent, xpNeeded: XP_PER_LEVEL,",
-            "    xpProgress: Math.min((xpCurrent / XP_PER_LEVEL) * 100, 100)",
+            "    stars: stars || 0, forks: forks || 0, repos: user.public_repos || 0, followers: user.followers || 0,",
+            "    totalXP: safeTotalXP, level: safeLevel, xpCurrent: safeXpCurrent, xpNeeded: 2000,",
+            "    xpProgress: safeXpProgress",
             "  };",
             "",
-            "  // Calcular Rank",
+            "  // SAFE MATH: Calcular Rank",
             "  let rank = { rank: 'E', color: '#fc8181', name: 'NOVICE' };",
-            "  if (totalXP >= 50000) rank = { rank: 'S', color: '#FFD700', name: 'MONARCH' };",
-            "  else if (totalXP >= 25000) rank = { rank: 'A', color: '#f472b6', name: 'S-RANK' };",
-            "  else if (totalXP >= 12000) rank = { rank: 'B', color: '#c084fc', name: 'ELITE' };",
-            "  else if (totalXP >= 5000) rank = { rank: 'C', color: '#4fd1c7', name: 'VETERAN' };",
-            "  else if (totalXP >= 1500) rank = { rank: 'D', color: '#a855f7', name: 'HUNTER' };",
+            "  if (safeTotalXP >= 50000) rank = { rank: 'S', color: '#FFD700', name: 'MONARCH' };",
+            "  else if (safeTotalXP >= 25000) rank = { rank: 'A', color: '#f472b6', name: 'S-RANK' };",
+            "  else if (safeTotalXP >= 12000) rank = { rank: 'B', color: '#c084fc', name: 'ELITE' };",
+            "  else if (safeTotalXP >= 5000) rank = { rank: 'C', color: '#4fd1c7', name: 'VETERAN' };",
+            "  else if (safeTotalXP >= 1500) rank = { rank: 'D', color: '#a855f7', name: 'HUNTER' };",
             "",
             "  const langTop = Object.entries(langTotals).sort((a, b) => b[1] - a[1]);",
             "  return { user, repos, topRepos, cls, stats, rank, langTop };",
@@ -344,6 +342,11 @@ jobs:
         const today = new Date().toLocaleDateString('pt-BR');
         const avX = W - 66, avY = 66, avR = 36;
 
+        // SAFE MATH para a UI também
+        const safeLevel = isNaN(stats.level) ? 1 : stats.level;
+        const safeTotalXP = isNaN(stats.totalXP) ? 0 : stats.totalXP;
+        const safeXpProgress = isNaN(stats.xpProgress) ? 0 : stats.xpProgress;
+
         const initial = ((user.name || user.login || '?').trim()[0] || '?').toUpperCase();
         const hasData = !!(avatarDataUrl && avatarDataUrl.startsWith('data:'));
         const avatarBlock = hasData
@@ -370,9 +373,9 @@ jobs:
   <circle cx="${avX}" cy="${avY}" r="${avR}" fill="none" stroke="${c.border}" stroke-width="2"/>
   <line x1="24" y1="138" x2="${W - 24}" y2="138" stroke="${c.border}" stroke-opacity="0.35"/>
   <text x="24" y="166" font-family="${font}" font-size="13" fill="${c.text}">💻 Linguagem principal: <tspan font-weight="700" fill="${c.bright}">${escapeXml(mainLang)}</tspan></text>
-  <text x="24" y="192" font-family="${font}" font-size="13" fill="${c.text}">🏆 Nível: <tspan font-weight="700" fill="${c.bright}">${stats.level}</tspan> • XP Total: <tspan font-weight="700" fill="${c.bright}">${stats.totalXP}</tspan></text>
+  <text x="24" y="192" font-family="${font}" font-size="13" fill="${c.text}">🏆 Nível: <tspan font-weight="700" fill="${c.bright}">${safeLevel}</tspan> • XP Total: <tspan font-weight="700" fill="${c.bright}">${safeTotalXP}</tspan></text>
   <rect x="24" y="204" width="${W - 48}" height="8" rx="4" fill="rgba(255,255,255,0.06)"/>
-  <rect x="24" y="204" width="${(((W - 48) * stats.xpProgress) / 100).toFixed(1)}" height="8" rx="4" fill="url(#bar)"/>
+  <rect x="24" y="204" width="${(((W - 48) * safeXpProgress) / 100).toFixed(1)}" height="8" rx="4" fill="url(#bar)"/>
   <text x="24" y="244" font-family="${font}" font-size="14" font-weight="700" fill="${c.bright}">⭐ Destaques:</text>
   ${repoLines}
   <line x1="24" y1="${H - 36}" x2="${W - 24}" y2="${H - 36}" stroke="${c.border}" stroke-opacity="0.35"/>
@@ -380,6 +383,6 @@ jobs:
 </svg>`;
     }
 
-    console.log('✅ [Templates] v10.1 pronto');
+    console.log('✅ [Templates] v10.2 pronto');
     return { dataYAML, workflowYAML, scriptNode, svg, themeColors, escapeXml, formatNumber, countryFlag, THEMES };
 })();
